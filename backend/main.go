@@ -6,25 +6,25 @@ import (
 )
 
 func main() {
-	mux := setupServer()
+	mux := SetupServer()
 
 	fmt.Println("Server running at http://localhost:8080")
 	http.ListenAndServe(":8080", mux)
 }
 
-func setupServer() *http.ServeMux {
+func SetupServer() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /", homeHandler)
-	mux.HandleFunc("GET /about", aboutHandler)
+	mux.HandleFunc("GET /", HomeHandler)
+	mux.HandleFunc("GET /about", AboutHandler)
 
 	return mux
 }
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello, World!")
 }
 
-func aboutHandler(w http.ResponseWriter, r *http.Request) {
+func AboutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "About page")
 }
