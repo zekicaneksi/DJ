@@ -4,7 +4,7 @@
 
 - Specify the requirements, what the program needs to do. -> DONE
 - Design the frontend UI. -> DONE
-- Looking at the UI, design the database.
+- Looking at the UI, design the database. -> DONE
 - Looking at the UI and the database, design the backend.
 
 <h3>Code</h3>
