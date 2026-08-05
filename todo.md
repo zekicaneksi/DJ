@@ -7,7 +7,6 @@
 
 <h3>Backend</h3>
 
-- Set up Go
 - Figure out what http server you want to use
     - Create an example http route
 - Figure out how to do the tests
