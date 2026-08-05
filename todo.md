@@ -7,8 +7,6 @@
 
 <h3>Backend</h3>
 
-- Figure out what http server you want to use
-    - Create an example http route
 - Figure out how to do the tests
     - Write an example test to test the route
 - Create the database file (SQLite file)
