@@ -7,8 +7,6 @@
 
 <h3>Backend</h3>
 
-- Tag operations
-    - Rename tag
 - Validate and check the name when creating and renaming tags
 - File operations
     - List files

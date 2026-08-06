@@ -154,3 +154,16 @@ func DeleteTag(tagID int64) error {
 
 	return nil
 }
+
+func RenameTag(tagID int64, newName string) error {
+	_, err := dbHandle.Exec(`
+		UPDATE tag
+		SET name = ?
+		WHERE id = ?
+	`, newName, tagID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

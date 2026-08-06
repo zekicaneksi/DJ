@@ -109,6 +109,17 @@ func TestDatabase(t *testing.T) {
 	// Checking if the tag is really deleted
 	tags, err = ListTags()
 	if err != nil || len(tags) != 2 {
+		t.Error("Error deleting tag", err)
+	}
+
+	// --- Rename a tag
+	if err := RenameTag(2, "disco"); err != nil {
 		t.Error(err)
+	}
+
+	// Check if it worked
+	tags, err = ListTags()
+	if err != nil || tags[1].Name != "disco" {
+		t.Error("Error renaming tag", err)
 	}
 }
