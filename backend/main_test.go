@@ -100,4 +100,15 @@ func TestDatabase(t *testing.T) {
 			t.Error("Tag mismatch")
 		}
 	}
+
+	// --- Delete a tag
+	if err := DeleteTag(3); err != nil {
+		t.Error(err)
+	}
+
+	// Checking if the tag is really deleted
+	tags, err = ListTags()
+	if err != nil || len(tags) != 2 {
+		t.Error(err)
+	}
 }

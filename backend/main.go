@@ -142,3 +142,15 @@ func ListTags() ([]Tag, error) {
 
 	return tags, rows.Err()
 }
+
+func DeleteTag(tagID int64) error {
+	_, err := dbHandle.Exec(
+		"DELETE FROM tag WHERE id = ?",
+		tagID,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
