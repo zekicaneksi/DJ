@@ -45,7 +45,7 @@ func TestHandlers(t *testing.T) {
 
 func TestDatabase(t *testing.T) {
 	testDirectoryPath := "test"
-	// ------ Clean the test directory
+	// Clean the test directory
 	files, err := os.ReadDir(testDirectoryPath)
 	if err != nil {
 		t.Error(err)
@@ -64,17 +64,19 @@ func TestDatabase(t *testing.T) {
 		}
 	}
 
-	// ------ Start Testing
+	// Start Testing
 
-	// --- Initialize Database
+	// --- Initialize Database ---
 	for range 2 { // Twice to test initializing already existing DB
 		if err := InitDatabase(testDirectoryPath + "/dj.sqlite"); err != nil {
 			t.Error(err)
 		}
 	}
 
-	// --- Create Tag
+	// --- Tag Operations ---
 	tagNames := []string{"techno", "rock", "instrumental"}
+
+	// --- Create Tag
 	for _, tagName := range tagNames {
 		if _, err := CreateTag(tagName); err != nil {
 			t.Error("Error creating tag", err)
@@ -84,6 +86,18 @@ func TestDatabase(t *testing.T) {
 	for _, tagName := range tagNames {
 		if _, err := CreateTag(tagName); err == nil {
 			t.Error("This was supposed to return an error")
+		}
+	}
+
+	// --- List Tags
+	tags, err := ListTags()
+	if err != nil {
+		t.Error(err)
+	}
+	// Are all tags listed and matching?
+	for i, tag := range tags {
+		if tag.Name != tagNames[i] {
+			t.Error("Tag mismatch")
 		}
 	}
 }

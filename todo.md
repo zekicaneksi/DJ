@@ -8,10 +8,11 @@
 <h3>Backend</h3>
 
 - Tag operations
-    - List tag
     - Delete tag
     - Rename tag
+- Validate and check the name when creating and renaming tags
 - File operations
     - List files
     - Add tag to a file
     - Remove tag from a file
+- Split and organize the main.go and its test file.

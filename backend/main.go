@@ -8,6 +8,11 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+type Tag struct {
+	ID   int64
+	Name string
+}
+
 var dbHandle *sql.DB
 
 func main() {
@@ -113,4 +118,27 @@ func CreateTag(tagName string) (int64, error) {
 	}
 
 	return id, nil
+}
+
+// Returns all of the tags at once
+func ListTags() ([]Tag, error) {
+	rows, err := dbHandle.Query("SELECT id, name FROM tag")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []Tag
+
+	for rows.Next() {
+		var tag Tag
+
+		if err := rows.Scan(&tag.ID, &tag.Name); err != nil {
+			return nil, err
+		}
+
+		tags = append(tags, tag)
+	}
+
+	return tags, rows.Err()
 }
