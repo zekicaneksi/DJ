@@ -7,7 +7,6 @@
 
 <h3>Backend</h3>
 
-- Update readme of backend
 - Tag operations
     - Add tag
     - List tag
