@@ -79,12 +79,16 @@ func InitDatabase(path string) error {
 	_, err = dbHandle.Exec(`
 		CREATE TABLE IF NOT EXISTS file (
 		id INTEGER PRIMARY KEY NOT NULL,
-		name varchar(255) UNIQUE NOT NULL
+    	name TEXT NOT NULL UNIQUE
+        	CHECK(length(trim(name)) > 0)
+        	CHECK(length(name) <= 100)
 		);
 
 		CREATE TABLE IF NOT EXISTS tag (
 		id INTEGER PRIMARY KEY NOT NULL,
-		name varchar(255) UNIQUE NOT NULL
+    	name TEXT NOT NULL UNIQUE
+        	CHECK(length(trim(name)) > 0)
+        	CHECK(length(name) <= 255)
 		);
 
 		CREATE TABLE IF NOT EXISTS file_tag (
