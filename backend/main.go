@@ -1,8 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
+
+	_ "modernc.org/sqlite"
 )
 
 func main() {
@@ -27,4 +30,44 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 func AboutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "About page")
+}
+
+func InitDatabase(path string) error {
+	// Create/Open the database file
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Check connection to the database
+	if err := db.Ping(); err != nil {
+		return err
+	}
+
+	// Create database tables if do not exist
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS file (
+		id INTEGER PRIMARY KEY NOT NULL,
+		name varchar(255) UNIQUE NOT NULL
+		);
+
+		CREATE TABLE IF NOT EXISTS tag (
+		id INTEGER PRIMARY KEY NOT NULL,
+		name varchar(255) UNIQUE NOT NULL
+		);
+
+		CREATE TABLE IF NOT EXISTS file_tag (
+		file_id INT NOT NULL,
+		tag_id INT NOT NULL,
+		FOREIGN KEY(file_id) REFERENCES file(id) ON DELETE CASCADE,
+		FOREIGN KEY(tag_id) REFERENCES tag(id) ON DELETE CASCADE,
+		UNIQUE(file_id, tag_id)
+		);
+	`)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

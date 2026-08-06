@@ -7,7 +7,7 @@
 
 <h3>Backend</h3>
 
-- Create the database file (SQLite file)
+- Update readme of backend
 - Tag operations
     - Add tag
     - List tag
