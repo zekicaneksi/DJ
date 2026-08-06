@@ -59,7 +59,8 @@ func InitDatabase(path string) error {
 	CloseDB()
 
 	// Create/Open the database file
-	dbHandle, err := sql.Open("sqlite", path)
+	var err error
+	dbHandle, err = sql.Open("sqlite", path)
 	if err != nil {
 		return err
 	}
@@ -94,4 +95,22 @@ func InitDatabase(path string) error {
 	}
 
 	return nil
+}
+
+// Creates a tag and returns the created tag's id
+func CreateTag(tagName string) (int64, error) {
+	result, err := dbHandle.Exec(
+		"INSERT INTO tag (name) VALUES (?)",
+		tagName,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }

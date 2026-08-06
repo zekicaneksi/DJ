@@ -45,7 +45,7 @@ func TestHandlers(t *testing.T) {
 
 func TestDatabase(t *testing.T) {
 	testDirectoryPath := "test"
-	// --- Clean the test directory
+	// ------ Clean the test directory
 	files, err := os.ReadDir(testDirectoryPath)
 	if err != nil {
 		t.Error(err)
@@ -64,11 +64,26 @@ func TestDatabase(t *testing.T) {
 		}
 	}
 
-	// --- Start Testing
-	// Initialize Database
+	// ------ Start Testing
+
+	// --- Initialize Database
 	for range 2 { // Twice to test initializing already existing DB
 		if err := InitDatabase(testDirectoryPath + "/dj.sqlite"); err != nil {
 			t.Error(err)
+		}
+	}
+
+	// --- Create Tag
+	tagNames := []string{"techno", "rock", "instrumental"}
+	for _, tagName := range tagNames {
+		if _, err := CreateTag(tagName); err != nil {
+			t.Error("Error creating tag", err)
+		}
+	}
+	// Try to create the same tags once again, it is supposed to return an error
+	for _, tagName := range tagNames {
+		if _, err := CreateTag(tagName); err == nil {
+			t.Error("This was supposed to return an error")
 		}
 	}
 }
