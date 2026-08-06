@@ -8,9 +8,21 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+var dbHandle *sql.DB
+
 func main() {
+	// Close the database before exiting app
+	closeDB := func() {
+		if err := CloseDB(); err != nil {
+			fmt.Println(err)
+		}
+	}
+	defer closeDB()
+
+	// Set up server
 	mux := SetupServer()
 
+	// Listen
 	fmt.Println("Server running at http://localhost:8080")
 	http.ListenAndServe(":8080", mux)
 }
@@ -32,21 +44,33 @@ func AboutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "About page")
 }
 
+func CloseDB() error {
+	if dbHandle != nil {
+		if err := dbHandle.Close(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func InitDatabase(path string) error {
+	// Close connection if there is one already
+	CloseDB()
+
 	// Create/Open the database file
-	db, err := sql.Open("sqlite", path)
+	dbHandle, err := sql.Open("sqlite", path)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	// Check connection to the database
-	if err := db.Ping(); err != nil {
+	if err := dbHandle.Ping(); err != nil {
 		return err
 	}
 
 	// Create database tables if do not exist
-	_, err = db.Exec(`
+	_, err = dbHandle.Exec(`
 		CREATE TABLE IF NOT EXISTS file (
 		id INTEGER PRIMARY KEY NOT NULL,
 		name varchar(255) UNIQUE NOT NULL
