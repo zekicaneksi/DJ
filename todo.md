@@ -8,7 +8,6 @@
 <h3>Backend</h3>
 
 - Tag operations
-    - Create a tag
     - List tag
     - Delete tag
     - Rename tag
