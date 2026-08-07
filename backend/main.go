@@ -310,3 +310,31 @@ func AttachTag(fileID int, tagIDs []int) error {
 
 	return nil
 }
+
+func DetachTag(fileID int, tagIDs []int) error {
+	tx, err := dbHandle.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare(`
+		DELETE FROM file_tag WHERE file_id=? AND tag_id=?;
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, tagID := range tagIDs {
+		if _, err := stmt.Exec(fileID, tagID); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -134,16 +134,25 @@ func TestDatabase(t *testing.T) {
 		t.Error(err)
 	}
 
+	if err := AttachTag(3, []int{1, 3}); err != nil {
+		t.Error(err)
+	}
+
 	if err := AttachTag(1, []int{2, 3}); err == nil {
 		t.Error("The function should have given an error for duplicate rows")
 	}
 
-	// --- Rename a tag
+	// --- Rename tag
 	if err := RenameTag(2, "disco"); err != nil {
 		t.Error(err)
 	}
 
-	// --- Delete a tag
+	// --- Detach tag
+	if err := DetachTag(3, []int{1, 3}); err != nil {
+		t.Error(err)
+	}
+
+	// --- Delete tag
 	if err := DeleteTag(2); err != nil {
 		t.Error(err)
 	}
