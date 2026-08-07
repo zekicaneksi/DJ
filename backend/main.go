@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -14,6 +17,7 @@ type Tag struct {
 }
 
 var dbHandle *sql.DB
+var dbPath string
 
 func main() {
 	// Close the database before exiting app
@@ -56,9 +60,14 @@ func CloseDB() error {
 		}
 	}
 
+	dbPath = ""
+
 	return nil
 }
 
+// Creates/opens the database file and creates the tables if do not exist
+// Sets the global dbPath and dbHandle variables
+// Checks the files in path and updates the database
 func InitDatabase(path string) error {
 	// Close connection if there is one already
 	CloseDB()
@@ -69,6 +78,8 @@ func InitDatabase(path string) error {
 	if err != nil {
 		return err
 	}
+
+	dbPath = path
 
 	// Check connection to the database
 	if err := dbHandle.Ping(); err != nil {
@@ -103,7 +114,103 @@ func InitDatabase(path string) error {
 		return err
 	}
 
+	UpdateFiles()
+
 	return nil
+}
+
+// Checks the directory the database is in
+// Adds new files into the database and removes the missing files from the database
+func UpdateFiles() error {
+	// -- Get files
+	files, err := os.ReadDir(dbPath)
+	if err != nil {
+		return err
+	}
+
+	// Allowed media file extensions
+	fileExtensions := []string{
+		"mp4", "mkv", "avi", "mov", "wmv",
+		"flv", "webm", "mp3", "aac", "flac", "wav",
+	}
+
+	// Making a map for faster look-up
+	fileExtensionsMap := make(map[string]struct{}, len(fileExtensions))
+	for _, ext := range fileExtensions {
+		fileExtensionsMap[ext] = struct{}{}
+	}
+
+	// Filter the files from directories and non-media files
+	var fileNames []string
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		ext := strings.TrimPrefix(strings.ToLower(filepath.Ext(file.Name())), ".")
+
+		if _, ok := fileExtensionsMap[ext]; !ok {
+			continue
+		}
+
+		fileNames = append(fileNames, file.Name())
+	}
+
+	// -- Update the database
+	tx, err := dbHandle.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Add new files
+	stmt, err := tx.Prepare(`
+		INSERT INTO file(name)
+		VALUES(?)
+		ON CONFLICT(name) DO NOTHING;
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, name := range fileNames {
+		if _, err := stmt.Exec(name); err != nil {
+			return err
+		}
+	}
+
+	// Remove missing files
+	if len(fileNames) == 0 {
+		_, err := tx.Exec("DELETE FROM file")
+		if err != nil {
+			return err
+		}
+	} else {
+		placeholders := strings.TrimRight(strings.Repeat("?,", len(fileNames)), ",")
+
+		query := fmt.Sprintf(
+			"DELETE FROM file WHERE name NOT IN (%s)",
+			placeholders,
+		)
+
+		args := make([]any, len(fileNames))
+		for i, n := range fileNames {
+			args[i] = n
+		}
+
+		if _, err := tx.Exec(query, args...); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 // Creates a tag and returns the created tag's id

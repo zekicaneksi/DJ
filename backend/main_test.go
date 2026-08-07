@@ -44,7 +44,10 @@ func TestHandlers(t *testing.T) {
 }
 
 func TestDatabase(t *testing.T) {
+
 	testDirectoryPath := "test"
+	fullDBPath := testDirectoryPath + "/dj.sqlite"
+
 	// Clean the test directory
 	files, err := os.ReadDir(testDirectoryPath)
 	if err != nil {
@@ -67,10 +70,51 @@ func TestDatabase(t *testing.T) {
 	// Start Testing
 
 	// --- Initialize Database ---
-	for range 2 { // Twice to test initializing already existing DB
-		if err := InitDatabase(testDirectoryPath + "/dj.sqlite"); err != nil {
+	// Initialize with no media files
+	if err := InitDatabase(fullDBPath); err != nil {
+		t.Error(err)
+	}
+
+	// Initialize again with new media files
+	createFile := func(fileName string) {
+		file, err := os.Create(testDirectoryPath + "/" + fileName)
+		if err != nil {
 			t.Error(err)
 		}
+		defer file.Close()
+
+		_, err = file.WriteString("Hello from DJ!\n")
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	filesToCreate := []string{"best_techno.mp3", "best_slow.mP4", "best_of_best.WAW"}
+	for _, n := range filesToCreate {
+		createFile(n)
+	}
+
+	if err := InitDatabase(fullDBPath); err != nil {
+		t.Error(err)
+	}
+	// Initialize again with a missing media file
+	removeMediaFile := func(index int) {
+		err = os.Remove(testDirectoryPath + "/" + filesToCreate[index])
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	removeMediaFile(1)
+	if err := InitDatabase(fullDBPath); err != nil {
+		t.Error(err)
+	}
+
+	// Initialize again with all media files missing
+	removeMediaFile(0)
+	removeMediaFile(2)
+	if err := InitDatabase(fullDBPath); err != nil {
+		t.Error(err)
 	}
 
 	// --- Tag Operations ---
