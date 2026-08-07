@@ -8,7 +8,6 @@
 <h3>Backend</h3>
 
 - File operations
-    - Add tag to a file
     - Remove tag from a file
     - List files
         - by tag (multiple tags can be given to list files)

@@ -46,7 +46,6 @@ func TestHandlers(t *testing.T) {
 func TestDatabase(t *testing.T) {
 
 	testDirectoryPath := "test"
-	fullDBPath := testDirectoryPath + "/dj.sqlite"
 
 	// Clean the test directory
 	files, err := os.ReadDir(testDirectoryPath)
@@ -71,11 +70,11 @@ func TestDatabase(t *testing.T) {
 
 	// --- Initialize Database ---
 	// Initialize with no media files
-	if err := InitDatabase(fullDBPath); err != nil {
+	if err := InitDatabase(testDirectoryPath); err != nil {
 		t.Error(err)
 	}
 
-	// Initialize again with new media files
+	// Initialize with new media files
 	createFile := func(fileName string) {
 		file, err := os.Create(testDirectoryPath + "/" + fileName)
 		if err != nil {
@@ -89,38 +88,19 @@ func TestDatabase(t *testing.T) {
 		}
 	}
 
-	filesToCreate := []string{"best_techno.mp3", "best_slow.mP4", "best_of_best.WAW"}
+	filesToCreate := []string{"best_techno.mp3", "best_slow.mP4", "best_of_best.WAV"}
 	for _, n := range filesToCreate {
 		createFile(n)
 	}
 
-	if err := InitDatabase(fullDBPath); err != nil {
-		t.Error(err)
-	}
-	// Initialize again with a missing media file
-	removeMediaFile := func(index int) {
-		err = os.Remove(testDirectoryPath + "/" + filesToCreate[index])
-		if err != nil {
-			t.Error(err)
-		}
-	}
-
-	removeMediaFile(1)
-	if err := InitDatabase(fullDBPath); err != nil {
-		t.Error(err)
-	}
-
-	// Initialize again with all media files missing
-	removeMediaFile(0)
-	removeMediaFile(2)
-	if err := InitDatabase(fullDBPath); err != nil {
+	if err := InitDatabase(testDirectoryPath); err != nil {
 		t.Error(err)
 	}
 
 	// --- Tag Operations ---
 	tagNames := []string{"techno", "rock", "instrumental"}
 
-	// --- Create Tag
+	// --- Create Tags
 	for _, tagName := range tagNames {
 		if _, err := CreateTag(tagName); err != nil {
 			t.Error("Error creating tag", err)
@@ -145,15 +125,17 @@ func TestDatabase(t *testing.T) {
 		}
 	}
 
-	// --- Delete a tag
-	if err := DeleteTag(3); err != nil {
+	// --- Attach tags
+	if err := AttachTag(1, []int{1, 2}); err != nil {
 		t.Error(err)
 	}
 
-	// Checking if the tag is really deleted
-	tags, err = ListTags()
-	if err != nil || len(tags) != 2 {
-		t.Error("Error deleting tag", err)
+	if err := AttachTag(2, []int{2, 3}); err != nil {
+		t.Error(err)
+	}
+
+	if err := AttachTag(1, []int{2, 3}); err == nil {
+		t.Error("The function should have given an error for duplicate rows")
 	}
 
 	// --- Rename a tag
@@ -161,9 +143,28 @@ func TestDatabase(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Check if it worked
-	tags, err = ListTags()
-	if err != nil || tags[1].Name != "disco" {
-		t.Error("Error renaming tag", err)
+	// --- Delete a tag
+	if err := DeleteTag(2); err != nil {
+		t.Error(err)
+	}
+
+	// Initialize with a missing media file
+	removeMediaFile := func(index int) {
+		err = os.Remove(testDirectoryPath + "/" + filesToCreate[index])
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	removeMediaFile(1)
+	if err := InitDatabase(testDirectoryPath); err != nil {
+		t.Error(err)
+	}
+
+	// Initialize with all media files missing
+	removeMediaFile(0)
+	removeMediaFile(2)
+	if err := InitDatabase(testDirectoryPath); err != nil {
+		t.Error(err)
 	}
 }

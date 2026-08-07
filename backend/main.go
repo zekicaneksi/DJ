@@ -74,7 +74,7 @@ func InitDatabase(path string) error {
 
 	// Create/Open the database file
 	var err error
-	dbHandle, err = sql.Open("sqlite", path)
+	dbHandle, err = sql.Open("sqlite", path+"/dj.sqlite?_pragma=foreign_keys(1)")
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,9 @@ func InitDatabase(path string) error {
 		return err
 	}
 
-	UpdateFiles()
+	if err := UpdateFiles(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -273,6 +275,36 @@ func RenameTag(tagID int64, newName string) error {
 		WHERE id = ?
 	`, newName, tagID)
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Attaches tags to a file
+func AttachTag(fileID int, tagIDs []int) error {
+	tx, err := dbHandle.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare(`
+		INSERT INTO file_tag (file_id, tag_id)
+		VALUES(?,?);
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, tagID := range tagIDs {
+		if _, err := stmt.Exec(fileID, tagID); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 
