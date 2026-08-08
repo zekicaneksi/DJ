@@ -88,7 +88,7 @@ func TestDatabase(t *testing.T) {
 		}
 	}
 
-	filesToCreate := []string{"best_techno.mp3", "best_slow.mP4", "best_of_best.WAV"}
+	filesToCreate := []string{"techno.mp3", "best slow.mP4", "best_of_best.WAV", "house.avi"}
 	for _, n := range filesToCreate {
 		createFile(n)
 	}
@@ -142,9 +142,33 @@ func TestDatabase(t *testing.T) {
 		t.Error("The function should have given an error for duplicate rows")
 	}
 
+	if err := AttachTag(1, []int{3}); err != nil {
+		t.Error(err)
+	}
+
 	// --- Rename tag
 	if err := RenameTag(2, "disco"); err != nil {
 		t.Error(err)
+	}
+
+	// --- List Files
+
+	// List all files
+	listFiles, err := ListFiles(nil)
+	if err != nil || len(listFiles) != 4 {
+		t.Error("Error when listing all files", err)
+	}
+
+	// List untagged files
+	listFiles, err = ListFiles([]int64{0})
+	if err != nil || len(listFiles) != 1 {
+		t.Error("Error when listing untagged files", err)
+	}
+
+	// List by tags
+	listFiles, err = ListFiles([]int64{2, 3})
+	if err != nil || len(listFiles) != 2 {
+		t.Error("Error when listing by tag", err)
 	}
 
 	// --- Detach tag

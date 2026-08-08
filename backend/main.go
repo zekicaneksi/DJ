@@ -16,6 +16,11 @@ type Tag struct {
 	Name string
 }
 
+type File struct {
+	ID   int64
+	Name string
+}
+
 var dbHandle *sql.DB
 var dbPath string
 
@@ -215,6 +220,74 @@ func UpdateFiles() error {
 
 }
 
+// List files by tag IDs
+// If the first tag ID is "0", all untagged files will be returned
+// If tagIDs is empty, all files will be returned
+func ListFiles(tagIDs []int64) ([]File, error) {
+	var (
+		files       []File
+		queryString string
+		queryArgs   []any
+	)
+
+	if len(tagIDs) == 0 {
+		// Return all files
+		queryString = `
+			SELECT id, name
+			FROM file
+			ORDER BY id;
+		`
+	} else if tagIDs[0] == 0 {
+		// Return untagged files
+		queryString = `
+			SELECT f.id, f.name
+			FROM file AS f
+			LEFT JOIN file_tag AS ft ON ft.file_id = f.id
+			WHERE ft.file_id IS NULL
+			ORDER BY f.id;
+		`
+	} else {
+		// Return files by tagIDs
+		placeholders := strings.TrimRight(strings.Repeat("?,", len(tagIDs)), ",")
+
+		queryString = fmt.Sprintf(`
+			SELECT f.id, f.name
+			FROM file AS f
+			JOIN file_tag AS ft ON ft.file_id = f.id
+			WHERE ft.tag_id IN (%s)
+			GROUP BY f.id, f.name
+			HAVING COUNT(*) = ?
+			ORDER BY f.id;
+		`, placeholders)
+
+		queryArgs = make([]any, len(tagIDs))
+		for i, tagID := range tagIDs {
+			queryArgs[i] = tagID
+		}
+		queryArgs = append(queryArgs, len(tagIDs))
+	}
+
+	// Execute the query
+	rows, err := dbHandle.Query(queryString, queryArgs...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var file File
+
+		if err := rows.Scan(&file.ID, &file.Name); err != nil {
+			return nil, err
+		}
+
+		files = append(files, file)
+	}
+
+	return files, rows.Err()
+
+}
+
 // Creates a tag and returns the created tag's id
 func CreateTag(tagName string) (int64, error) {
 	result, err := dbHandle.Exec(
@@ -235,7 +308,7 @@ func CreateTag(tagName string) (int64, error) {
 
 // Returns all of the tags at once
 func ListTags() ([]Tag, error) {
-	rows, err := dbHandle.Query("SELECT id, name FROM tag")
+	rows, err := dbHandle.Query("SELECT id, name FROM tag ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
