@@ -197,6 +197,7 @@ func TestDatabase(t *testing.T) {
 	// Initialize with all media files missing
 	removeMediaFile(0)
 	removeMediaFile(2)
+	removeMediaFile(3)
 	if err := InitDatabase(testDirectoryPath); err != nil {
 		t.Error(err)
 	}

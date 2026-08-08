@@ -285,7 +285,6 @@ func ListFiles(tagIDs []int64) ([]File, error) {
 	}
 
 	return files, rows.Err()
-
 }
 
 // Creates a tag and returns the created tag's id
