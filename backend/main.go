@@ -21,8 +21,10 @@ type File struct {
 	Name string
 }
 
-var dbHandle *sql.DB
-var dbPath string
+var (
+	dbHandle *sql.DB
+	dbPath   string
+)
 
 func main() {
 	// Close the database before exiting app
@@ -46,6 +48,7 @@ func SetupServer() *http.ServeMux {
 
 	mux.HandleFunc("GET /", HomeHandler)
 	mux.HandleFunc("GET /about", AboutHandler)
+	mux.HandleFunc("GET /api/media/{file_id}", MediaHandler)
 
 	return mux
 }
@@ -58,6 +61,31 @@ func AboutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "About page")
 }
 
+// Streaming a media file over http
+func MediaHandler(w http.ResponseWriter, r *http.Request) {
+	file_id := r.PathValue("file_id")
+
+	var file File
+
+	err := dbHandle.QueryRow(
+		"SELECT id, name FROM file WHERE id = ?",
+		file_id,
+	).Scan(&file.ID, &file.Name)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Fprintln(w, "File not found")
+			return
+		}
+		fmt.Fprintln(w, "Unknown error")
+		return
+	}
+
+	path := filepath.Join(dbPath, "/", file.Name)
+	http.ServeFile(w, r, path)
+}
+
+// Closes the database connection and resets the dbHandle and dbPath global variables
 func CloseDB() error {
 	if dbHandle != nil {
 		if err := dbHandle.Close(); err != nil {

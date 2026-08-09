@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -8,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestHandlers(t *testing.T) {
+func TestPlaceholderHandlers(t *testing.T) {
 
 	testHandler := func(route string, expected string, Handler func(http.ResponseWriter, *http.Request)) {
 		req := httptest.NewRequest(
@@ -43,7 +44,7 @@ func TestHandlers(t *testing.T) {
 	testHandler("/about", "About page\n", AboutHandler)
 }
 
-func TestDatabase(t *testing.T) {
+func TestEverything(t *testing.T) {
 
 	testDirectoryPath := "test"
 
@@ -75,6 +76,7 @@ func TestDatabase(t *testing.T) {
 	}
 
 	// Initialize with new media files
+	fileContents := "Hello from DJ!\n"
 	createFile := func(fileName string) {
 		file, err := os.Create(testDirectoryPath + "/" + fileName)
 		if err != nil {
@@ -82,7 +84,7 @@ func TestDatabase(t *testing.T) {
 		}
 		defer file.Close()
 
-		_, err = file.WriteString("Hello from DJ!\n")
+		_, err = file.WriteString(fileContents)
 		if err != nil {
 			t.Error(err)
 		}
@@ -97,10 +99,9 @@ func TestDatabase(t *testing.T) {
 		t.Error(err)
 	}
 
-	// --- Tag Operations ---
+	// --- Create Tags
 	tagNames := []string{"techno", "rock", "instrumental"}
 
-	// --- Create Tags
 	for _, tagName := range tagNames {
 		if _, err := CreateTag(tagName); err != nil {
 			t.Error("Error creating tag", err)
@@ -180,6 +181,37 @@ func TestDatabase(t *testing.T) {
 	if err := DeleteTag(2); err != nil {
 		t.Error(err)
 	}
+
+	// --- Testing Media Handler (streaming media file over http)
+	testMediaHandler := func() {
+		req := httptest.NewRequest(
+			http.MethodGet,
+			"/api/media/2",
+			nil,
+		)
+
+		// PathValue() only works when the request has been routed.
+		// Set the path value manually for the test.
+		req.SetPathValue("file_id", "2")
+
+		rec := httptest.NewRecorder()
+
+		MediaHandler(rec, req)
+
+		res := rec.Result()
+		defer res.Body.Close()
+
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if string(body) != fileContents {
+			t.Errorf("expected %q, got %q", fileContents, string(body))
+		}
+	}
+
+	testMediaHandler()
 
 	// Initialize with a missing media file
 	removeMediaFile := func(index int) {
