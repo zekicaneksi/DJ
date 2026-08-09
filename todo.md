@@ -8,7 +8,11 @@
 
 <h3>List</h3>
 
-- Check if the backend is able to do everything the frontend needs
+- Playing Songs
+    - Take file id and send it over http
+- Creating Playlist
+    - Create a directory called dj_playlist on init
+    - The function will take an array of tag arrays with each array coupled with amount. And will create a playlist from that.
 - Split and organize the main.go and its test file.
 - Design backend routes (API)
 - Code the backend routes
