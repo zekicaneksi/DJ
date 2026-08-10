@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"database/sql"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -22,8 +25,10 @@ type File struct {
 }
 
 var (
-	dbHandle *sql.DB
-	dbPath   string
+	dbHandle        *sql.DB
+	dbPath          string
+	dbName          string = "dj.sqlite"
+	playlistDirName string = "dj_playlist"
 )
 
 func main() {
@@ -81,7 +86,7 @@ func MediaHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := filepath.Join(dbPath, "/", file.Name)
+	path := filepath.Join(dbPath, file.Name)
 	http.ServeFile(w, r, path)
 }
 
@@ -107,12 +112,18 @@ func InitDatabase(path string) error {
 
 	// Create/Open the database file
 	var err error
-	dbHandle, err = sql.Open("sqlite", path+"/dj.sqlite?_pragma=foreign_keys(1)")
+	dbHandle, err = sql.Open("sqlite", filepath.Join(path, dbName)+"?_pragma=foreign_keys(1)")
 	if err != nil {
 		return err
 	}
 
 	dbPath = path
+
+	// Create the playlist directory
+	err = os.MkdirAll(filepath.Join(path, playlistDirName), 0755)
+	if err != nil {
+		return err
+	}
 
 	// Check connection to the database
 	if err := dbHandle.Ping(); err != nil {
@@ -437,4 +448,172 @@ func DetachTag(fileID int, tagIDs []int) error {
 	}
 
 	return nil
+}
+
+// Creates a shuffled playlist by the provided tag groups and amounts
+// returns the created file's absolute path
+func CreatePlaylist(tagGroups []struct {
+	TagsIDs []int64
+	Amount  int
+}) (string, error) {
+
+	if len(tagGroups) == 0 {
+		return "", fmt.Errorf("empty tag group array provided")
+	}
+
+	tx, err := dbHandle.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	var files []File
+
+	// IDs selected by earlier groups to prevent multiple selection of same files
+	selectedIDs := make(map[int64]struct{})
+
+	for _, tagGroup := range tagGroups {
+		if len(tagGroup.TagsIDs) == 0 {
+			return "", fmt.Errorf("tag group is empty")
+		}
+
+		if tagGroup.Amount <= 0 {
+			return "", fmt.Errorf("tag group amount is 0")
+		}
+
+		// Looking for duplicate ids, and returning error if found
+		tagSet := make(map[int64]struct{}, len(tagGroup.TagsIDs))
+
+		for _, tagID := range tagGroup.TagsIDs {
+			if _, exists := tagSet[tagID]; exists {
+				return "", fmt.Errorf("duplicate tag ID %d in tag group", tagID)
+			}
+
+			tagSet[tagID] = struct{}{}
+		}
+
+		// For the (?, ?, ?, ...)
+		tagPlaceholders := make([]string, len(tagGroup.TagsIDs))
+		// Arguments to provide to the query in the end
+		args := make([]any, 0, len(tagGroup.TagsIDs)+len(selectedIDs)+1)
+
+		for i, tagID := range tagGroup.TagsIDs {
+			tagPlaceholders[i] = "?"
+			args = append(args, tagID)
+		}
+
+		query := `
+			SELECT f.id, f.name
+			FROM file AS f
+			JOIN file_tag AS ft ON ft.file_id = f.id
+			WHERE ft.tag_id IN (` + strings.Join(tagPlaceholders, ",") + `)
+		`
+
+		// Exclude files already selected by previous groups.
+		if len(selectedIDs) > 0 {
+			excludePlaceholders := make([]string, 0, len(selectedIDs))
+
+			for id := range selectedIDs {
+				excludePlaceholders = append(excludePlaceholders, "?")
+				args = append(args, id)
+			}
+
+			query += `
+				AND f.id NOT IN (` + strings.Join(excludePlaceholders, ",") + `)
+			`
+		}
+
+		query += `
+			GROUP BY f.id, f.name
+			HAVING COUNT(DISTINCT ft.tag_id) = ?
+			ORDER BY RANDOM()
+			LIMIT ?
+		`
+
+		args = append(args, len(tagGroup.TagsIDs), tagGroup.Amount)
+
+		rows, err := tx.Query(query, args...)
+		if err != nil {
+			return "", err
+		}
+
+		for rows.Next() {
+			var f File
+
+			if err := rows.Scan(&f.ID, &f.Name); err != nil {
+				rows.Close()
+				return "", err
+			}
+
+			files = append(files, f)
+			selectedIDs[f.ID] = struct{}{}
+		}
+
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return "", err
+		}
+
+		rows.Close()
+
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+
+	// Shuffling the files
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	fileNames := make([]string, len(files))
+
+	for i, file := range files {
+		fileNames[i] = file.Name
+	}
+
+	r.Shuffle(len(fileNames), func(i, j int) {
+		fileNames[i], fileNames[j] = fileNames[j], fileNames[i]
+	})
+
+	playlistPath, err := CreateM3U8(fileNames)
+
+	if err != nil {
+		return "", err
+	}
+
+	return playlistPath, nil
+
+}
+
+// Creates a playlist file and returns the created file's absolute path
+func CreateM3U8(mediaFiles []string) (string, error) {
+	filename := fmt.Sprintf(
+		"dj-%s.m3u8",
+		time.Now().Format("2006-01-02-15-04-05"),
+	)
+
+	outputPath := filepath.Join(dbPath, playlistDirName, filename)
+
+	file, err := os.Create(outputPath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+
+	if _, err := writer.WriteString("#EXTM3U\n"); err != nil {
+		return "", err
+	}
+
+	for _, mediaFile := range mediaFiles {
+		if _, err := writer.WriteString(mediaFile + "\n"); err != nil {
+			return "", err
+		}
+	}
+
+	if err := writer.Flush(); err != nil {
+		return "", err
+	}
+
+	return outputPath, nil
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 )
@@ -61,7 +62,7 @@ func TestEverything(t *testing.T) {
 		if slices.Contains(filesToKeep, fileName) {
 			continue
 		}
-		err := os.Remove(testDirectoryPath + "/" + fileName)
+		err := os.RemoveAll(filepath.Join(testDirectoryPath, fileName))
 		if err != nil {
 			t.Error(err)
 		}
@@ -78,7 +79,7 @@ func TestEverything(t *testing.T) {
 	// Initialize with new media files
 	fileContents := "Hello from DJ!\n"
 	createFile := func(fileName string) {
-		file, err := os.Create(testDirectoryPath + "/" + fileName)
+		file, err := os.Create(filepath.Join(testDirectoryPath, fileName))
 		if err != nil {
 			t.Error(err)
 		}
@@ -172,6 +173,17 @@ func TestEverything(t *testing.T) {
 		t.Error("Error when listing by tag", err)
 	}
 
+	// Create a playlist
+	if _, err := CreatePlaylist([]struct {
+		TagsIDs []int64
+		Amount  int
+	}{
+		{TagsIDs: []int64{1, 2, 3}, Amount: 1},
+		{TagsIDs: []int64{2, 3}, Amount: 3},
+	}); err != nil {
+		t.Error(err)
+	}
+
 	// --- Detach tag
 	if err := DetachTag(3, []int{1, 3}); err != nil {
 		t.Error(err)
@@ -215,7 +227,7 @@ func TestEverything(t *testing.T) {
 
 	// Initialize with a missing media file
 	removeMediaFile := func(index int) {
-		err = os.Remove(testDirectoryPath + "/" + filesToCreate[index])
+		err = os.Remove(filepath.Join(testDirectoryPath, filesToCreate[index]))
 		if err != nil {
 			t.Error(err)
 		}
