@@ -8,7 +8,6 @@
 
 <h3>List</h3>
 
-- Split and organize the main.go and its test file.
 - Design backend routes (API)
 - Code the backend routes
 - Code the frontend
