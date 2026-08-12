@@ -11,3 +11,7 @@
 - Design backend routes (API)
 - Code the backend routes
 - Code the frontend
+
+<h3>Backlog</h3>
+
+- Better error messages and unit tests for backend
