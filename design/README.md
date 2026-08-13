@@ -2,7 +2,6 @@
 
 <b>This is only the initial design and once the coding starts, the design here will not be updated.</b>
 
-
 <h2>Requirements</h2>
 
 - Tag the music files to categorize them.
