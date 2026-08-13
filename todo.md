@@ -1,12 +1,12 @@
-<h1>TODO</h1>
+# TODO
 
-<h3>Notes</h3>
+### Notes
 
 - Code the frontend and the backend completely separately. Write tests that will not need the other one to work for both.
     - In the end, test them together as well (integration test).
 - Code the backend first.
 
-<h3>List</h3>
+### List
 
 - Change updating (Attaching/Detaching) tags
     - `POST /update-tag` route will send the tag ids a file should have.
