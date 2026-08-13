@@ -1,31 +1,31 @@
 # DJ - Backend
 
-<h3>Technologies</h3>
+### Technologies
 
 - Go
 - SQLite
 
-<h3>Environment Variables</h3>
+### Environment Variables
 
 ```
 DJ_BACKEND_PORT --- The backend port
 ```
 
-<h2>Development</h2>
+## Development
 
-<h3>Test</h3>
+### Test
 
 ```
 go clean -testcache && go test -v .
 ```
 
-<h3>Run</h3>
+### Run
 
 ```
 go run .
 ```
 
-<h2>Build</h2>
+## Build
 
 To create the executable
 
