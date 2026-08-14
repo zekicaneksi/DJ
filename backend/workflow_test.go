@@ -93,15 +93,15 @@ func TestWorkflow(t *testing.T) {
 	}
 
 	// --- Update Tags
-	if err := UpdateTags(1, []int{1, 2, 3}); err != nil {
+	if err := UpdateTags(1, []int64{1, 2, 3}); err != nil {
 		t.Error(err)
 	}
 
-	if err := UpdateTags(2, []int{2, 3}); err != nil {
+	if err := UpdateTags(2, []int64{2, 3}); err != nil {
 		t.Error(err)
 	}
 
-	if err := UpdateTags(3, []int{1, 3}); err != nil {
+	if err := UpdateTags(3, []int64{1, 3}); err != nil {
 		t.Error(err)
 	}
 
@@ -142,7 +142,7 @@ func TestWorkflow(t *testing.T) {
 	}
 
 	// --- Update Tags
-	if err := UpdateTags(3, []int{2}); err != nil {
+	if err := UpdateTags(3, []int64{2}); err != nil {
 		t.Error(err)
 	}
 

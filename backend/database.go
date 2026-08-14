@@ -289,7 +289,7 @@ func RenameTag(tagID int64, newName string) error {
 }
 
 // Clears the tags on a file, then attaches given tags
-func UpdateTags(fileID int, tagIDs []int) error {
+func UpdateTags(fileID int64, tagIDs []int64) error {
 
 	// Begin transaction
 	tx, err := dbHandle.Begin()
