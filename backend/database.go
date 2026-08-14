@@ -288,14 +288,26 @@ func RenameTag(tagID int64, newName string) error {
 	return nil
 }
 
-// Attaches tags to a file
-func AttachTag(fileID int, tagIDs []int) error {
+// Clears the tags on a file, then attaches given tags
+func UpdateTags(fileID int, tagIDs []int) error {
+
+	// Begin transaction
 	tx, err := dbHandle.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
+	// Clear tags
+	_, err = dbHandle.Exec(`
+		DELETE FROM file_tag
+		WHERE file_id = ?
+	`, fileID)
+	if err != nil {
+		return err
+	}
+
+	// Insert new tags
 	stmt, err := tx.Prepare(`
 		INSERT INTO file_tag (file_id, tag_id)
 		VALUES(?,?);
@@ -311,34 +323,7 @@ func AttachTag(fileID int, tagIDs []int) error {
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func DetachTag(fileID int, tagIDs []int) error {
-	tx, err := dbHandle.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	stmt, err := tx.Prepare(`
-		DELETE FROM file_tag WHERE file_id=? AND tag_id=?;
-	`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	for _, tagID := range tagIDs {
-		if _, err := stmt.Exec(fileID, tagID); err != nil {
-			return err
-		}
-	}
-
+	// Commit transaction
 	if err := tx.Commit(); err != nil {
 		return err
 	}

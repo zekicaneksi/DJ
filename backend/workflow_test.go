@@ -92,24 +92,16 @@ func TestWorkflow(t *testing.T) {
 		}
 	}
 
-	// --- Attach tags
-	if err := AttachTag(1, []int{1, 2}); err != nil {
+	// --- Update Tags
+	if err := UpdateTags(1, []int{1, 2, 3}); err != nil {
 		t.Error(err)
 	}
 
-	if err := AttachTag(2, []int{2, 3}); err != nil {
+	if err := UpdateTags(2, []int{2, 3}); err != nil {
 		t.Error(err)
 	}
 
-	if err := AttachTag(3, []int{1, 3}); err != nil {
-		t.Error(err)
-	}
-
-	if err := AttachTag(1, []int{2, 3}); err == nil {
-		t.Error("The function should have given an error for duplicate rows")
-	}
-
-	if err := AttachTag(1, []int{3}); err != nil {
+	if err := UpdateTags(3, []int{1, 3}); err != nil {
 		t.Error(err)
 	}
 
@@ -149,8 +141,8 @@ func TestWorkflow(t *testing.T) {
 		t.Error(err)
 	}
 
-	// --- Detach tag
-	if err := DetachTag(3, []int{1, 3}); err != nil {
+	// --- Update Tags
+	if err := UpdateTags(3, []int{2}); err != nil {
 		t.Error(err)
 	}
 
