@@ -8,7 +8,6 @@
 
 ### List
 
-- `GET /tags/{file_id}` route requires a function to get tags of a file by id 
 - Better error messages from the backend functions and have more checks
 - Unit tests that test every scenario
 - Integration test that simulates normal usage, not every scenario

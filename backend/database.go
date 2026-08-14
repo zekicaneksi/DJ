@@ -263,6 +263,31 @@ func ListTags() ([]Tag, error) {
 	return tags, rows.Err()
 }
 
+func ListTagsByFileID(fileID int64) ([]Tag, error) {
+	rows, err := dbHandle.Query(`
+		SELECT t.id, t.name FROM tag AS t
+		JOIN file_tag AS ft ON ft.tag_id = t.id
+		WHERE ft.file_id=? ORDER BY t.id`, fileID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []Tag
+
+	for rows.Next() {
+		var tag Tag
+
+		if err := rows.Scan(&tag.ID, &tag.Name); err != nil {
+			return nil, err
+		}
+
+		tags = append(tags, tag)
+	}
+
+	return tags, rows.Err()
+}
+
 func DeleteTag(tagID int64) error {
 	_, err := dbHandle.Exec(
 		"DELETE FROM tag WHERE id = ?",

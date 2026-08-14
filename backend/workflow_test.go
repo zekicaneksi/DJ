@@ -130,6 +130,12 @@ func TestWorkflow(t *testing.T) {
 		t.Error("Error when listing by tag", err)
 	}
 
+	// List tags by file id
+	tagsByFileID, err := ListTagsByFileID(2)
+	if err != nil || len(tagsByFileID) != 2 {
+		t.Error("Error when listing tags by file ID", err)
+	}
+
 	// Create a playlist
 	if _, err := CreatePlaylist([]struct {
 		TagsIDs []int64
