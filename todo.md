@@ -11,9 +11,10 @@
 - Unit tests that test every scenario
 - Integration test that simulates normal usage, not every scenario
 - Code the backend routes by design (design/routes_api.md)
-    - Validate the input in these routes. Validation function is already written in `validation.go`;
+    - Validate the input in these routes. Validation functions are already written in `validation.go`;
         - CreateTag
         - RenameTag
+        - CreatePlaylist
     - Example for when checking validation error
     ```
     	if _, err := ValidateTagName(tagName); err != nil {

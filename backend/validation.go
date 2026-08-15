@@ -32,7 +32,7 @@ func ValidateTagGroups(tagGroups []TagGroup) error {
 		}
 
 		if tagGroup.Amount <= 0 {
-			return fmt.Errorf("tag group amount is 0")
+			return fmt.Errorf("tag group amount has to be bigger than 0")
 		}
 
 		// Looking for duplicate ids, and returning error if found
