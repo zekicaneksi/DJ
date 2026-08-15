@@ -137,10 +137,7 @@ func TestWorkflow(t *testing.T) {
 	}
 
 	// Create a playlist
-	if _, err := CreatePlaylist([]struct {
-		TagsIDs []int64
-		Amount  int
-	}{
+	if _, err := CreatePlaylist([]TagGroup{
 		{TagsIDs: []int64{1, 2, 3}, Amount: 1},
 		{TagsIDs: []int64{2, 3}, Amount: 3},
 	}); err != nil {
