@@ -16,7 +16,7 @@ DJ_BACKEND_PORT --- The backend port
 ### Test
 
 ```
-go clean -testcache && go test -v .
+go clean -testcache && go test -v -parallel 1 .
 ```
 
 ### Run

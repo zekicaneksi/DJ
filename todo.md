@@ -8,8 +8,8 @@
 
 ### List
 
-- Unit tests that test every scenario
-- Integration test that simulates normal usage, not every scenario
+- Integration test that simulates intended usage, not every scenario. After every operation, check if it was done correctly or not.
+    - Use the `workflow_test.go` file 
 - Code the backend routes by design (design/routes_api.md)
     - Validate the input in these routes. Validation functions are already written in `validation.go`;
         - CreateTag

@@ -22,6 +22,37 @@ func CreateTag(tagName string) (int64, error) {
 	return id, nil
 }
 
+// Renames a tag
+func RenameTag(tagID int64, newName string) error {
+	if err := ValidateTagName(newName); err != nil {
+		return err
+	}
+
+	_, err := dbHandle.Exec(`
+		UPDATE tag
+		SET name = ?
+		WHERE id = ?
+	`, newName, tagID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Deletes a tag
+func DeleteTag(tagID int64) error {
+	_, err := dbHandle.Exec(
+		"DELETE FROM tag WHERE id = ?",
+		tagID,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Returns all of the tags at once
 func ListTags() ([]Tag, error) {
 	rows, err := dbHandle.Query("SELECT id, name FROM tag ORDER BY id")
@@ -45,6 +76,7 @@ func ListTags() ([]Tag, error) {
 	return tags, rows.Err()
 }
 
+// Lists tags of a file by its ID
 func ListTagsByFileID(fileID int64) ([]Tag, error) {
 	rows, err := dbHandle.Query(`
 		SELECT t.id, t.name FROM tag AS t
@@ -68,35 +100,6 @@ func ListTagsByFileID(fileID int64) ([]Tag, error) {
 	}
 
 	return tags, rows.Err()
-}
-
-func DeleteTag(tagID int64) error {
-	_, err := dbHandle.Exec(
-		"DELETE FROM tag WHERE id = ?",
-		tagID,
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func RenameTag(tagID int64, newName string) error {
-	if err := ValidateTagName(newName); err != nil {
-		return err
-	}
-
-	_, err := dbHandle.Exec(`
-		UPDATE tag
-		SET name = ?
-		WHERE id = ?
-	`, newName, tagID)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Clears the tags on a file, then attaches given tags

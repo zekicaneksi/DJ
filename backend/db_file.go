@@ -70,52 +70,114 @@ func UpdateFiles() error {
 
 }
 
-// List files by tag IDs
-// If the first tag ID is "0", all untagged files will be returned
-// If tagIDs is empty, all files will be returned
-func ListFiles(tagIDs []int64) ([]File, error) {
+// List all files in the database
+func ListFilesAll() ([]File, error) {
+
+	var files []File
+
+	// Query String
+	queryString := `
+		SELECT id, name
+		FROM file
+		ORDER BY id;
+	`
+	// Execute the query
+	rows, err := dbHandle.Query(queryString)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var file File
+
+		if err := rows.Scan(&file.ID, &file.Name); err != nil {
+			return nil, err
+		}
+
+		files = append(files, file)
+	}
+
+	return files, rows.Err()
+}
+
+// Lists only the untagged files
+func ListFilesUntagged() ([]File, error) {
+
+	var files []File
+
+	// Query String
+	queryString := `
+		SELECT f.id, f.name
+		FROM file AS f
+		LEFT JOIN file_tag AS ft ON ft.file_id = f.id
+		WHERE ft.file_id IS NULL
+		ORDER BY f.id;
+	`
+
+	// Execute the query
+	rows, err := dbHandle.Query(queryString)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var file File
+
+		if err := rows.Scan(&file.ID, &file.Name); err != nil {
+			return nil, err
+		}
+
+		files = append(files, file)
+	}
+
+	return files, rows.Err()
+}
+
+// Lists files by tag IDs
+func ListFilesByTagIDs(tagIDs []int64) ([]File, error) {
+	// Checking for duplicates and invalids in tagIDs
+	seen := make(map[int64]struct{}, len(tagIDs))
+
+	for _, tagID := range tagIDs {
+		if _, exists := seen[tagID]; exists {
+			return nil, fmt.Errorf("duplicate tag ID: %d", tagID)
+		}
+
+		if tagID <= 0 {
+			return nil, fmt.Errorf("invalid tag ID: %d", tagID)
+		}
+
+		seen[tagID] = struct{}{}
+	}
+
+	// tagIDs is valid, continue
 	var (
 		files       []File
 		queryString string
 		queryArgs   []any
 	)
 
-	if len(tagIDs) == 0 {
-		// Return all files
-		queryString = `
-			SELECT id, name
-			FROM file
-			ORDER BY id;
-		`
-	} else if tagIDs[0] == 0 {
-		// Return untagged files
-		queryString = `
-			SELECT f.id, f.name
-			FROM file AS f
-			LEFT JOIN file_tag AS ft ON ft.file_id = f.id
-			WHERE ft.file_id IS NULL
-			ORDER BY f.id;
-		`
-	} else {
-		// Return files by tagIDs
-		placeholders := strings.TrimRight(strings.Repeat("?,", len(tagIDs)), ",")
+	// Prepare queryString
+	placeholders := strings.TrimRight(strings.Repeat("?,", len(tagIDs)), ",")
 
-		queryString = fmt.Sprintf(`
-			SELECT f.id, f.name
-			FROM file AS f
-			JOIN file_tag AS ft ON ft.file_id = f.id
-			WHERE ft.tag_id IN (%s)
-			GROUP BY f.id, f.name
-			HAVING COUNT(*) = ?
-			ORDER BY f.id;
-		`, placeholders)
+	queryString = fmt.Sprintf(`
+		SELECT f.id, f.name
+		FROM file AS f
+		JOIN file_tag AS ft ON ft.file_id = f.id
+		WHERE ft.tag_id IN (%s)
+		GROUP BY f.id, f.name
+		HAVING COUNT(*) = ?
+		ORDER BY f.id;
+	`, placeholders)
 
-		queryArgs = make([]any, len(tagIDs))
-		for i, tagID := range tagIDs {
-			queryArgs[i] = tagID
-		}
-		queryArgs = append(queryArgs, len(tagIDs))
+	// Prepare queryArgs
+	queryArgs = make([]any, len(tagIDs))
+	for i, tagID := range tagIDs {
+		queryArgs[i] = tagID
 	}
+	queryArgs = append(queryArgs, len(tagIDs))
 
 	// Execute the query
 	rows, err := dbHandle.Query(queryString, queryArgs...)

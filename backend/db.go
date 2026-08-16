@@ -82,6 +82,7 @@ func InitDatabase(path string) error {
 		return fmt.Errorf("error when creating database tables: %w", err)
 	}
 
+	// Update files
 	if err := UpdateFiles(); err != nil {
 		return fmt.Errorf("error when updating files: %w", err)
 	}
