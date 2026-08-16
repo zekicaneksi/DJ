@@ -66,6 +66,7 @@ func deleteFile(t *testing.T, fileName string) {
 }
 
 // Sets the database up for testing
+// Do not forget to call "defer CloseDB" afterwards
 func setUpAndFillDB(t *testing.T) {
 	// Create files
 	filesToCreate := []string{"techno.mp3", "best slow.mP4", "best_of_best.WAV", "house.avi"}

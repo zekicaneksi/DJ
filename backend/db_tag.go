@@ -54,7 +54,7 @@ func DeleteTag(tagID int64) error {
 }
 
 // Returns all of the tags at once
-func ListTags() ([]Tag, error) {
+func ListTagsAll() ([]Tag, error) {
 	rows, err := dbHandle.Query("SELECT id, name FROM tag ORDER BY id")
 	if err != nil {
 		return nil, err

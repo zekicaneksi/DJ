@@ -153,7 +153,7 @@ func TestListTags(t *testing.T) {
 	}
 
 	// Test
-	tags, err := ListTags()
+	tags, err := ListTagsAll()
 	if err != nil {
 		t.Fatal(err)
 	}

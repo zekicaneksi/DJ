@@ -8,9 +8,7 @@
 
 ### List
 
-- Integration test that simulates intended usage, not every scenario. After every operation, check if it was done correctly or not.
-    - Use the `workflow_test.go` file 
-- Code the backend routes by design (design/routes_api.md)
+- Code the backend routes by design (design/routes_api.md), write their tests as well.
     - Validate the input in these routes. Validation functions are already written in `validation.go`;
         - CreateTag
         - RenameTag
@@ -24,3 +22,4 @@
         CreateTag(tagName)
     ```
 - Code the frontend
+    - The design is more of a wireframe design. Make the real deal cooler.
