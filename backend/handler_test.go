@@ -1,45 +1,72 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func TestPlaceholderHandlers(t *testing.T) {
+func TestChooseDirHandler(t *testing.T) {
 
-	testHandler := func(route string, expected string, Handler func(http.ResponseWriter, *http.Request)) {
+	testHandler := func(body string) (*http.Response, string) {
 		req := httptest.NewRequest(
-			http.MethodGet,
-			route,
-			nil,
+			http.MethodPost,
+			"/choose-dir",
+			bytes.NewBufferString(body),
 		)
+		req.Header.Set("Content-Type", "application/json")
 
 		recorder := httptest.NewRecorder()
-
-		Handler(recorder, req)
+		ChooseDirHandler(recorder, req)
 
 		response := recorder.Result()
+		defer response.Body.Close()
 
-		if response.StatusCode != http.StatusOK {
-			t.Fatalf(
-				"expected status 200, got %d",
-				response.StatusCode,
-			)
+		responseBody, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if recorder.Body.String() != expected {
-			t.Fatalf(
-				"expected body %q, got %q",
-				expected,
-				recorder.Body.String(),
-			)
-		}
+		return response, string(responseBody)
 	}
 
-	testHandler("/", "Hello, World!\n", HomeHandler)
-	testHandler("/about", "About page\n", AboutHandler)
+	// Valid Path
+	response, responseBody := testHandler(fmt.Sprintf(`{
+		"dirPath": "%s"
+	}`, testDirectoryPath))
+
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNoContent, response.StatusCode, responseBody)
+	}
+
+	// Invalid Path
+	response, responseBody = testHandler(fmt.Sprintf(`{
+		"dirPath": "%s"
+	}`, "123123"))
+
+	if response.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusInternalServerError, response.StatusCode, responseBody)
+	}
+
+	// Invalid JSON
+	response, responseBody = testHandler(`ascascascasc`)
+
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
+	}
+
+	// dirPath Missing
+	response, responseBody = testHandler(`{
+		"message": "Hello"
+	}`)
+
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
+	}
+
 }
 
 func TestMediaHandler(t *testing.T) {

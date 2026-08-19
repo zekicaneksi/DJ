@@ -2,27 +2,120 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
 )
 
-func SetupServer() *http.ServeMux {
+func SetupServer() http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /", HomeHandler)
-	mux.HandleFunc("GET /about", AboutHandler)
+	// Handlers
+	mux.HandleFunc("POST /choose-dir", ChooseDirHandler)
 	mux.HandleFunc("GET /api/media/{file_id}", MediaHandler)
 
-	return mux
+	// Middlewares
+	// Applied from innermost to outermost.
+	handler := maxBodySizeMiddleware(mux)
+	// handler = anotherMiddleware(handler)
+
+	return handler
 }
 
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello, World!")
+// To protect against huge bodies.
+func maxBodySizeMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MiB
+		defer r.Body.Close()
+
+		next.ServeHTTP(w, r)
+	})
 }
 
-func AboutHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "About page")
+// Writes JSON into response
+func writeResJSON(w http.ResponseWriter, status int, data map[string]any) {
+	resBody, err := json.Marshal(data)
+	if err != nil {
+		// data could not be marshalled
+		fmt.Printf("failed to marshal JSON response: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Internal error",
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	if _, err := w.Write(resBody); err != nil {
+		fmt.Printf("failed to write JSON response: %v", err)
+	}
+}
+
+// Choose a directory and set up the database in the backend.
+func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		DirPath string `json:"dirPath"`
+	}
+
+	// Invalid JSON
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid JSON",
+		})
+		return
+	}
+
+	// dirPath missing
+	if req.DirPath == "" {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "dirPath is required",
+		})
+		return
+	}
+
+	// Initialize database
+	if err := InitDatabase(req.DirPath); err != nil {
+		fmt.Println(err)
+
+		writeErr := func(err error) {
+			writeResJSON(w, http.StatusInternalServerError, map[string]any{
+				"error": err,
+			})
+		}
+
+		switch {
+		case errors.Is(err, ErrOpeningDatabase):
+			writeErr(ErrOpeningDatabase)
+
+		case errors.Is(err, ErrDatabaseConnection):
+			writeErr(ErrDatabaseConnection)
+
+		case errors.Is(err, ErrPlaylistDirCreate):
+			writeErr(ErrPlaylistDirCreate)
+
+		case errors.Is(err, ErrTableCreation):
+			writeErr(ErrTableCreation)
+
+		case errors.Is(err, ErrUpdatingFiles):
+			writeErr(ErrUpdatingFiles)
+
+		default:
+			writeResJSON(w, http.StatusInternalServerError, map[string]any{
+				"error": "Unknown error",
+			})
+		}
+
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+
 }
 
 // Streaming a media file over http

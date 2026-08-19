@@ -38,12 +38,12 @@ func InitDatabase(path string) error {
 	var err error
 	dbHandle, err = sql.Open("sqlite", filepath.Join(path, dbName)+"?_pragma=foreign_keys(1)")
 	if err != nil {
-		return fmt.Errorf("error when opening database: %w", err)
+		return fmt.Errorf("%w: %v", ErrOpeningDatabase, err)
 	}
 
 	// Check connection to the database
 	if err := dbHandle.Ping(); err != nil {
-		return fmt.Errorf("error when pinging database: %w", err)
+		return fmt.Errorf("%w: %v", ErrDatabaseConnection, err)
 	}
 
 	dbPath = path
@@ -51,7 +51,7 @@ func InitDatabase(path string) error {
 	// Create the playlist directory
 	err = os.MkdirAll(filepath.Join(path, playlistDirName), 0755)
 	if err != nil {
-		return fmt.Errorf("error when creating the playlist directory: %w", err)
+		return fmt.Errorf("%w: %v", ErrPlaylistDirCreate, err)
 	}
 
 	// Create database tables if do not exist
@@ -79,12 +79,12 @@ func InitDatabase(path string) error {
 		);
 	`)
 	if err != nil {
-		return fmt.Errorf("error when creating database tables: %w", err)
+		return fmt.Errorf("%w: %v", ErrTableCreation, err)
 	}
 
 	// Update files
 	if err := UpdateFiles(); err != nil {
-		return fmt.Errorf("error when updating files: %w", err)
+		return fmt.Errorf("%w: %v", ErrUpdatingFiles, err)
 	}
 
 	return nil

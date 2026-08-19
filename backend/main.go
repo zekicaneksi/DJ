@@ -24,9 +24,12 @@ func main() {
 	defer closeDB()
 
 	// Set up server
-	mux := SetupServer()
+	handler := SetupServer()
 
 	// Listen
 	fmt.Println("Server running at " + config.Port)
-	http.ListenAndServe(":"+config.Port, mux)
+	if err := http.ListenAndServe(":"+config.Port, handler); err != nil {
+		fmt.Println(err)
+	}
+
 }
