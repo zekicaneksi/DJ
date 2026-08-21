@@ -8,9 +8,8 @@ import "testing"
 	Checking that is a ton of work and is not worth it.
 */
 func TestCreatePlaylist(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Setup
 	setUpAndFillDB(t)

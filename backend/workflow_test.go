@@ -6,9 +6,8 @@ import (
 
 // This test simulates intended user behavior
 func TestWorkflow(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Create files for the directory
 	filesToCreate := []string{"techno.mp3", "best slow.mP4", "best_of_best.WAV", "house.avi"}

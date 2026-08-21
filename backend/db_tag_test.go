@@ -3,9 +3,8 @@ package main
 import "testing"
 
 func TestCreateTag(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Initialize database
 	if err := InitDatabase(testDirectoryPath); err != nil {
@@ -40,9 +39,8 @@ func TestCreateTag(t *testing.T) {
 }
 
 func TestRenameTag(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Initialize database
 	if err := InitDatabase(testDirectoryPath); err != nil {
@@ -89,9 +87,8 @@ func TestRenameTag(t *testing.T) {
 }
 
 func TestDeleteTag(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Initialize database
 	if err := InitDatabase(testDirectoryPath); err != nil {
@@ -134,9 +131,8 @@ func TestDeleteTag(t *testing.T) {
 }
 
 func TestListTags(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Initialize database
 	if err := InitDatabase(testDirectoryPath); err != nil {
@@ -163,9 +159,8 @@ func TestListTags(t *testing.T) {
 }
 
 func TestListTagsByFileID(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Setup
 	setUpAndFillDB(t)
@@ -200,9 +195,8 @@ func TestListTagsByFileID(t *testing.T) {
 }
 
 func TestUpdateTags(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Setup
 	setUpAndFillDB(t)

@@ -11,9 +11,8 @@ import (
 )
 
 func TestChooseDirHandler(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Request
 	testHandler := func(body string) (*http.Response, string) {
@@ -77,9 +76,8 @@ func TestChooseDirHandler(t *testing.T) {
 }
 
 func TestListTagsHandler(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Set up DB
 	setUpAndFillDB(t)
@@ -122,9 +120,8 @@ func TestListTagsHandler(t *testing.T) {
 }
 
 func TestTagsByFileIDHandler(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Set up DB
 	setUpAndFillDB(t)
@@ -196,9 +193,8 @@ func TestTagsByFileIDHandler(t *testing.T) {
 }
 
 func TestMediaHandler(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Create a file
 	createFile(t, "techno.mp3")

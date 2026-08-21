@@ -13,9 +13,8 @@ import (
 )
 
 func TestUpdateFiles(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Initialize database -- Also runs UpdateFiles with no files present
 	if err := InitDatabase(testDirectoryPath); err != nil {
@@ -68,9 +67,8 @@ func TestUpdateFiles(t *testing.T) {
 }
 
 func TestListFilesAll(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Setup
 	setUpAndFillDB(t)
@@ -87,9 +85,8 @@ func TestListFilesAll(t *testing.T) {
 }
 
 func TestListFilesUntagged(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Setup
 	setUpAndFillDB(t)
@@ -106,9 +103,8 @@ func TestListFilesUntagged(t *testing.T) {
 }
 
 func TestListFilesByTagIDs(t *testing.T) {
-	// Cleanup
-	cleanTestDirectory(t)
-	defer cleanTestDirectory(t)
+	// Setup
+	setUpTest(t)
 
 	// Setup
 	setUpAndFillDB(t)
@@ -139,5 +135,4 @@ func TestListFilesByTagIDs(t *testing.T) {
 	listFilesByTagIDs([]int64{1, 2, 2, 3}, true, 0) // Duplicate id
 	listFilesByTagIDs([]int64{1, -2, 3}, true, 0)   // id < 0
 	listFilesByTagIDs([]int64{1, 0, 3}, true, 0)    // id == 0
-
 }

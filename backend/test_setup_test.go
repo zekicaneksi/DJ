@@ -105,3 +105,11 @@ func setUpAndFillDB(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Setting the test up
+func setUpTest(t *testing.T) {
+	cleanTestDirectory(t)
+	t.Cleanup(func() {
+		cleanTestDirectory(t)
+	})
+}
