@@ -138,6 +138,7 @@ func ListFilesUntagged() ([]File, error) {
 // Lists files by tag IDs
 func ListFilesByTagIDs(tagIDs []int64) ([]File, error) {
 	// Checking for duplicates and invalids in tagIDs
+	// note: This check should be done in the handle and not here. Carry this when writing the handler for it.
 	seen := make(map[int64]struct{}, len(tagIDs))
 
 	for _, tagID := range tagIDs {

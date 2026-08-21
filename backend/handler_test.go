@@ -181,7 +181,7 @@ func TestTagsByFileIDHandler(t *testing.T) {
 	}
 
 	// Invalid file ID
-	for _, param := range []string{"hello", "", "-123", "0"} {
+	for _, param := range invalidDbIDs {
 		response, responseBody = makeRequest(param)
 		if response.StatusCode != http.StatusBadRequest {
 			t.Fatalf("Should've returned with %d with %s, instead got: %d", http.StatusBadRequest, param, response.StatusCode)
@@ -240,7 +240,7 @@ func TestMediaHandler(t *testing.T) {
 	}
 
 	// Invalid file id
-	for _, param := range []string{"hello", "", "-123", "0"} {
+	for _, param := range invalidDbIDs {
 		response, responseBody = makeRequest(param)
 		if response.StatusCode != http.StatusBadRequest {
 			t.Fatalf("Should've returned with %d with %s, instead got: %d", http.StatusBadRequest, param, response.StatusCode)

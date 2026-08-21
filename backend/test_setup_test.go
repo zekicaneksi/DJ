@@ -11,6 +11,7 @@ import (
 var (
 	testDirectoryPath = "test"
 	testFileContents  = "Hello from DJ!\n"
+	invalidDbIDs      = []string{"hello", "", "-123", "0"}
 )
 
 // Delete all the test files from the test directory
