@@ -148,6 +148,15 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Checking if file exists
+	missing, err := CheckIDsInDB("file", []int64{file_id})
+	if len(missing) != 0 {
+		writeResJSON(w, http.StatusNotFound, map[string]any{
+			"error": "file does not exist",
+		})
+		return
+	}
+
 	// Listing Tags
 	tags, err := ListTagsByFileID(file_id)
 	if err != nil {
@@ -177,6 +186,7 @@ func MediaHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Getting the file from database
 	var file File
 
 	err = dbHandle.QueryRow(
@@ -192,12 +202,13 @@ func MediaHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			writeResJSON(w, http.StatusInternalServerError, map[string]any{
-				"error": "Failed to stream file",
+				"error": "Failed to query database",
 			})
 			return
 		}
 	}
 
+	// Serve the file
 	path := filepath.Join(dbPath, file.Name)
 	http.ServeFile(w, r, path)
 }

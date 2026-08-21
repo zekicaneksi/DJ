@@ -187,6 +187,12 @@ func TestTagsByFileIDHandler(t *testing.T) {
 			t.Fatalf("Should've returned with %d with %s, instead got: %d", http.StatusBadRequest, param, response.StatusCode)
 		}
 	}
+
+	// Missing file ID
+	response, responseBody = makeRequest("123123")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("Should've returned with %d, instead got: %d", http.StatusNotFound, response.StatusCode)
+	}
 }
 
 func TestMediaHandler(t *testing.T) {

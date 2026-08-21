@@ -20,7 +20,7 @@ func GetDirMediaFiles(path string) ([]string, error) {
 		"flv", "webm", "mp3", "aac", "flac", "wav",
 	}
 
-	// -- Get files
+	// Get files
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err

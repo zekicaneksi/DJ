@@ -319,6 +319,14 @@ Get the list of files from the backend by tag ids.
 }
 ```
 
+#### 404 - Not Found
+
+```json
+{
+  "error": "x tags are missing"
+}
+```
+
 #### 500 - Internal Server Error
 
 ```json
@@ -402,6 +410,14 @@ Creates a playlist file.
 ```json
 {
   "error": "Cannot create the file"
+}
+```
+
+#### 404 - Not Found
+
+```json
+{
+  "error": "x tags are missing"
 }
 ```
 
