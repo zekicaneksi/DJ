@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"path/filepath"
 )
@@ -39,7 +40,7 @@ func writeResJSON(w http.ResponseWriter, status int, data map[string]any) {
 	resBody, err := json.Marshal(data)
 	if err != nil {
 		// data could not be marshalled
-		fmt.Printf("failed to marshal JSON response: %v", err)
+		log.Printf("failed to marshal JSON response: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -52,7 +53,7 @@ func writeResJSON(w http.ResponseWriter, status int, data map[string]any) {
 	w.WriteHeader(status)
 
 	if _, err := w.Write(resBody); err != nil {
-		fmt.Printf("failed to write JSON response: %v", err)
+		log.Printf("failed to write JSON response: %v", err)
 	}
 }
 
@@ -81,7 +82,7 @@ func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Initialize database
 	if err := InitDatabase(req.DirPath); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 
 		writeErr := func(err error) {
 			writeResJSON(w, http.StatusInternalServerError, map[string]any{
