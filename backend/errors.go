@@ -21,6 +21,10 @@ var (
 	ErrTagGroupEmpty       = errors.New("a tag group is empty")
 	ErrTagGroupAmount      = errors.New("tag group amount has to be bigger than 0")
 	ErrTagGroupDuplicateID = errors.New("duplicate tag id in a tag group")
+
+	// Database ID Errors
+	ErrIDInvalid     = errors.New("invalid ID")
+	ErrIDNotPositive = errors.New("ID has to be bigger than 0")
 )
 
 // Can be used when validating a JSON with many fields

@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"strconv"
 )
 
 func SetupServer() http.Handler {
@@ -140,17 +139,11 @@ func ListTagsHandler(w http.ResponseWriter, r *http.Request) {
 func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 	param_file_id := r.PathValue("file_id")
 
-	// Validating file ID
-	file_id, err := strconv.ParseInt(param_file_id, 10, 64)
+	// Validating file id
+	file_id, err := ValidateDbId(param_file_id)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid file id",
-		})
-		return
-	}
-	if file_id <= 0 {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "file id has to be bigger than 0",
+			"error": err,
 		})
 		return
 	}
@@ -175,17 +168,11 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 func MediaHandler(w http.ResponseWriter, r *http.Request) {
 	param_file_id := r.PathValue("file_id")
 
-	// Validating file ID
-	file_id, err := strconv.ParseInt(param_file_id, 10, 64)
+	// Validating file id
+	file_id, err := ValidateDbId(param_file_id)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid file id",
-		})
-		return
-	}
-	if file_id <= 0 {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "file id has to be bigger than 0",
+			"error": err,
 		})
 		return
 	}
