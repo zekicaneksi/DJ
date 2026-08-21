@@ -51,9 +51,7 @@ func TestChooseDirHandler(t *testing.T) {
 	}
 
 	// Invalid Path
-	response, responseBody := testHandler(fmt.Sprintf(`{
-		"dirPath": "%s"
-	}`, "123123"))
+	response, responseBody := testHandler(`{"dirPath": "123123"}`)
 
 	if response.StatusCode != http.StatusInternalServerError {
 		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusInternalServerError, response.StatusCode, responseBody)
@@ -225,18 +223,14 @@ func TestCreateTagHandler(t *testing.T) {
 	}
 
 	// Valid Tag
-	response, responseBody := makeRequest(fmt.Sprintf(`{
-		"name": "%s"
-	}`, "folk"))
+	response, responseBody := makeRequest(`{"name": "folk"}`)
 
 	if response.StatusCode != http.StatusCreated {
 		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusCreated, response.StatusCode, responseBody)
 	}
 
 	// Duplicate Tag
-	response, responseBody = makeRequest(fmt.Sprintf(`{
-		"name": "%s"
-	}`, "folk"))
+	response, responseBody = makeRequest(`{"name": "folk"}`)
 
 	if response.StatusCode != http.StatusConflict {
 		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusConflict, response.StatusCode, responseBody)
@@ -254,9 +248,7 @@ func TestCreateTagHandler(t *testing.T) {
 	}
 
 	// Missing name field
-	response, responseBody = makeRequest(fmt.Sprintf(`{
-		"hello": "%s"
-	}`, "folk"))
+	response, responseBody = makeRequest(`{"hello": "folk"}`)
 
 	if response.StatusCode != http.StatusBadRequest {
 		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
@@ -297,10 +289,7 @@ func TestRenameTagHandler(t *testing.T) {
 	// Valid
 	// Twice to test updating the same tag to its own name
 	for range 2 {
-		response, responseBody := makeRequest(fmt.Sprintf(`{
-		"tagID": "%s",
-		"newName": "%s"
-	}`, "3", "folk"))
+		response, responseBody := makeRequest(`{"tagID": "3","newName": "folk"}`)
 
 		if response.StatusCode != http.StatusNoContent {
 			t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNoContent, response.StatusCode, responseBody)
@@ -308,20 +297,14 @@ func TestRenameTagHandler(t *testing.T) {
 	}
 
 	// Non-existent Tag ID
-	response, responseBody := makeRequest(fmt.Sprintf(`{
-		"tagID": "%s",
-		"newName": "%s"
-	}`, "123123", "trance"))
+	response, responseBody := makeRequest(`{"tagID": "123123","newName": "trance"}`)
 
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNotFound, response.StatusCode, responseBody)
 	}
 
 	// Updating another tag to same name
-	response, responseBody = makeRequest(fmt.Sprintf(`{
-		"tagID": "%s",
-		"newName": "%s"
-	}`, "2", "folk"))
+	response, responseBody = makeRequest(`{"tagID": "2","newName": "folk"}`)
 
 	if response.StatusCode != http.StatusConflict {
 		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusConflict, response.StatusCode, responseBody)
@@ -346,20 +329,14 @@ func TestRenameTagHandler(t *testing.T) {
 	}
 
 	// Missing tagID
-	response, responseBody = makeRequest(fmt.Sprintf(`{
-		"hello": "%s",
-		"newName": "%s"
-	}`, "2", "folk"))
+	response, responseBody = makeRequest(`{"hello": "2","newName": "folk"}`)
 
 	if response.StatusCode != http.StatusBadRequest {
 		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
 	}
 
 	// Missing newName
-	response, responseBody = makeRequest(fmt.Sprintf(`{
-		"tagID": "%s",
-		"hello": "%s"
-	}`, "2", "folk"))
+	response, responseBody = makeRequest(`{"tagID": "2","hello": "folk"}`)
 
 	if response.StatusCode != http.StatusBadRequest {
 		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
