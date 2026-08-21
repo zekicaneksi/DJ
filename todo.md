@@ -8,6 +8,12 @@
 
 ### List
 
+- Is this used in the beginning of every test? If so, it can be put into TestMain
+```
+	// Cleanup
+	cleanTestDirectory(t)
+	defer cleanTestDirectory(t)
+```
 - Add the `/api` prefix to routes.
 - Code the backend routes by design (design/routes_api.md), write their tests as well. (One route is already written "ChooseDirHandler", you can take it as an example.)
     - Validate the input in these routes. Validation functions are already written in `validation.go`;

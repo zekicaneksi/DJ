@@ -76,7 +76,7 @@ func TestChooseDirHandler(t *testing.T) {
 	}
 }
 
-func TestTagsHandler(t *testing.T) {
+func TestListTagsHandler(t *testing.T) {
 	// Cleanup
 	cleanTestDirectory(t)
 	defer cleanTestDirectory(t)
@@ -93,7 +93,7 @@ func TestTagsHandler(t *testing.T) {
 	)
 
 	recorder := httptest.NewRecorder()
-	TagsHandler(recorder, req)
+	ListTagsHandler(recorder, req)
 
 	response := recorder.Result()
 	defer response.Body.Close()
@@ -121,6 +121,74 @@ func TestTagsHandler(t *testing.T) {
 	}
 }
 
+func TestTagsByFileIDHandler(t *testing.T) {
+	// Cleanup
+	cleanTestDirectory(t)
+	defer cleanTestDirectory(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	makeRequest := func(file_id string) (*http.Response, string) {
+		req := httptest.NewRequest(
+			http.MethodGet,
+			"/tags/"+file_id,
+			nil,
+		)
+
+		// PathValue() only works when the request has been routed.
+		// Set the path value manually for the test.
+		req.SetPathValue("file_id", file_id)
+
+		rec := httptest.NewRecorder()
+		TagsByFileIDHandler(rec, req)
+
+		res := rec.Result()
+		defer res.Body.Close()
+
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return res, string(body)
+	}
+
+	marshalResponse := func(stringResponse string) []Tag {
+		var responseVals struct {
+			Tags []Tag `json:"tags"`
+		}
+
+		err := json.Unmarshal([]byte(stringResponse), &responseVals)
+		if err != nil {
+			t.Fatalf("cannot unmarshal %s: %v", stringResponse, err)
+		}
+
+		return responseVals.Tags
+	}
+
+	var responseTags []Tag
+	// Valid Request
+	response, responseBody := makeRequest("3")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("Should've returned %d, instead got: %d", http.StatusOK, response.StatusCode)
+	}
+	responseTags = marshalResponse(responseBody)
+	if len(responseTags) != 2 {
+		t.Fatalf("Should have returned 2 elements, instead got: %v", responseTags)
+	}
+
+	// Invalid file ID
+	for _, param := range []string{"hello", "", "-123", "0"} {
+		response, responseBody = makeRequest(param)
+		if response.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Should've returned with %d with %s, instead got: %d", http.StatusBadRequest, param, response.StatusCode)
+		}
+	}
+}
+
 func TestMediaHandler(t *testing.T) {
 	// Cleanup
 	cleanTestDirectory(t)
@@ -135,30 +203,53 @@ func TestMediaHandler(t *testing.T) {
 	}
 	defer CloseDB()
 
-	// Test
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/media/1",
-		nil,
-	)
+	// Request
+	makeRequest := func(file_id string) (*http.Response, string) {
+		req := httptest.NewRequest(
+			http.MethodGet,
+			"/media/"+file_id,
+			nil,
+		)
 
-	// PathValue() only works when the request has been routed.
-	// Set the path value manually for the test.
-	req.SetPathValue("file_id", "1")
+		// PathValue() only works when the request has been routed.
+		// Set the path value manually for the test.
+		req.SetPathValue("file_id", file_id)
 
-	rec := httptest.NewRecorder()
+		rec := httptest.NewRecorder()
 
-	MediaHandler(rec, req)
+		MediaHandler(rec, req)
 
-	res := rec.Result()
-	defer res.Body.Close()
+		res := rec.Result()
+		defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		t.Fatal(err)
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return res, string(body)
 	}
 
-	if string(body) != testFileContents {
-		t.Fatalf("expected %q, got %q", testFileContents, string(body))
+	// Valid Request
+	response, responseBody := makeRequest("1")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("Should've returned %d, instead got: %d", http.StatusOK, response.StatusCode)
+	}
+	if responseBody != testFileContents {
+		t.Fatalf("expected %q, got %q", testFileContents, responseBody)
+	}
+
+	// Invalid file id
+	for _, param := range []string{"hello", "", "-123", "0"} {
+		response, responseBody = makeRequest(param)
+		if response.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Should've returned with %d with %s, instead got: %d", http.StatusBadRequest, param, response.StatusCode)
+		}
+	}
+
+	// File not found
+	response, responseBody = makeRequest("123123123")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("Should've returned %d, instead got: %d", http.StatusNotFound, response.StatusCode)
 	}
 }

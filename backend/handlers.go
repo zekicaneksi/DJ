@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
+	"strconv"
 )
 
 func SetupServer() http.Handler {
@@ -15,7 +15,8 @@ func SetupServer() http.Handler {
 
 	// Handlers
 	mux.HandleFunc("POST /choose-dir", ChooseDirHandler)
-	mux.HandleFunc("GET /tags", TagsHandler)
+	mux.HandleFunc("GET /tags", ListTagsHandler)
+	mux.HandleFunc("GET /tags/{file_id}", TagsByFileIDHandler)
 	mux.HandleFunc("GET /media/{file_id}", MediaHandler)
 
 	// Middlewares
@@ -119,7 +120,7 @@ func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func TagsHandler(w http.ResponseWriter, r *http.Request) {
+func ListTagsHandler(w http.ResponseWriter, r *http.Request) {
 	tags, err := ListTagsAll()
 	if err != nil {
 		log.Println(err)
@@ -136,24 +137,78 @@ func TagsHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
+	param_file_id := r.PathValue("file_id")
+
+	// Validating file ID
+	file_id, err := strconv.ParseInt(param_file_id, 10, 64)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid file id",
+		})
+		return
+	}
+	if file_id <= 0 {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "file id has to be bigger than 0",
+		})
+		return
+	}
+
+	// Listing Tags
+	tags, err := ListTagsByFileID(file_id)
+	if err != nil {
+		log.Println(err)
+
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "Failed to query database",
+		})
+		return
+	}
+
+	writeResJSON(w, http.StatusOK, map[string]any{
+		"tags": tags,
+	})
+}
+
 // Streaming a media file over http
 func MediaHandler(w http.ResponseWriter, r *http.Request) {
-	file_id := r.PathValue("file_id")
+	param_file_id := r.PathValue("file_id")
+
+	// Validating file ID
+	file_id, err := strconv.ParseInt(param_file_id, 10, 64)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid file id",
+		})
+		return
+	}
+	if file_id <= 0 {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "file id has to be bigger than 0",
+		})
+		return
+	}
 
 	var file File
 
-	err := dbHandle.QueryRow(
+	err = dbHandle.QueryRow(
 		"SELECT id, name FROM file WHERE id = ?",
 		file_id,
 	).Scan(&file.ID, &file.Name)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Fprintln(w, "File not found")
+			writeResJSON(w, http.StatusNotFound, map[string]any{
+				"error": "File not found",
+			})
+			return
+		} else {
+			writeResJSON(w, http.StatusInternalServerError, map[string]any{
+				"error": "Failed to stream file",
+			})
 			return
 		}
-		fmt.Fprintln(w, "Unknown error")
-		return
 	}
 
 	path := filepath.Join(dbPath, file.Name)
