@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,7 +11,11 @@ import (
 )
 
 func TestChooseDirHandler(t *testing.T) {
+	// Cleanup
+	cleanTestDirectory(t)
+	defer cleanTestDirectory(t)
 
+	// Request
 	testHandler := func(body string) (*http.Response, string) {
 		req := httptest.NewRequest(
 			http.MethodPost,
@@ -34,16 +39,19 @@ func TestChooseDirHandler(t *testing.T) {
 	}
 
 	// Valid Path
-	response, responseBody := testHandler(fmt.Sprintf(`{
+	// First run initializes a new database, second one opens the existing one
+	for range 2 {
+		response, responseBody := testHandler(fmt.Sprintf(`{
 		"dirPath": "%s"
 	}`, testDirectoryPath))
 
-	if response.StatusCode != http.StatusNoContent {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNoContent, response.StatusCode, responseBody)
+		if response.StatusCode != http.StatusNoContent {
+			t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNoContent, response.StatusCode, responseBody)
+		}
 	}
 
 	// Invalid Path
-	response, responseBody = testHandler(fmt.Sprintf(`{
+	response, responseBody := testHandler(fmt.Sprintf(`{
 		"dirPath": "%s"
 	}`, "123123"))
 
@@ -66,7 +74,51 @@ func TestChooseDirHandler(t *testing.T) {
 	if response.StatusCode != http.StatusBadRequest {
 		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
 	}
+}
 
+func TestTagsHandler(t *testing.T) {
+	// Cleanup
+	cleanTestDirectory(t)
+	defer cleanTestDirectory(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/tags",
+		nil,
+	)
+
+	recorder := httptest.NewRecorder()
+	TagsHandler(recorder, req)
+
+	response := recorder.Result()
+	defer response.Body.Close()
+
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if response.StatusCode == http.StatusOK {
+		var responseVals struct {
+			Tags []Tag `json:"tags"`
+		}
+
+		err = json.Unmarshal([]byte(string(responseBody)), &responseVals)
+		if err != nil {
+			t.Fatalf("cannot unmarshal %s: %v", string(responseBody), err)
+		}
+
+		if len(responseVals.Tags) != 4 {
+			t.Fatalf("Should have returned 4 elements, instead got: %v", responseVals.Tags)
+		}
+	} else {
+		t.Fatalf("Should've returned %d, instead got: %d", http.StatusOK, response.StatusCode)
+	}
 }
 
 func TestMediaHandler(t *testing.T) {
@@ -86,7 +138,7 @@ func TestMediaHandler(t *testing.T) {
 	// Test
 	req := httptest.NewRequest(
 		http.MethodGet,
-		"/api/media/1",
+		"/media/1",
 		nil,
 	)
 

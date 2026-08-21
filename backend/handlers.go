@@ -15,7 +15,8 @@ func SetupServer() http.Handler {
 
 	// Handlers
 	mux.HandleFunc("POST /choose-dir", ChooseDirHandler)
-	mux.HandleFunc("GET /api/media/{file_id}", MediaHandler)
+	mux.HandleFunc("GET /tags", TagsHandler)
+	mux.HandleFunc("GET /media/{file_id}", MediaHandler)
 
 	// Middlewares
 	// Applied from innermost to outermost.
@@ -116,7 +117,23 @@ func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
 
+func TagsHandler(w http.ResponseWriter, r *http.Request) {
+	tags, err := ListTagsAll()
+	if err != nil {
+		log.Println(err)
+
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "Failed to query database",
+		})
+
+		return
+	}
+
+	writeResJSON(w, http.StatusOK, map[string]any{
+		"tags": tags,
+	})
 }
 
 // Streaming a media file over http
