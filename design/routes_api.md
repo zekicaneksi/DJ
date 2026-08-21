@@ -47,7 +47,7 @@ Choose a directory and set up the database in the backend.
 }
 ```
 
-#### 200 - Success
+#### 204 - No Content
 
 ```text
 Empty body
@@ -102,10 +102,6 @@ Get the list of all tags.
 ### GET /tags/{file_id}
 
 Get the list of tags of a file by id.
-
-```text
-Empty body
-```
 
 #### 200 - Success
 
@@ -334,10 +330,6 @@ Get the list of files from the backend by tag ids.
 ### GET /media/{file_id}
 
 Streams a file by id.
-
-```text
-Empty body
-```
 
 #### 200 - Success
 
