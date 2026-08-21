@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 )
 
@@ -178,17 +179,190 @@ func TestTagsByFileIDHandler(t *testing.T) {
 	}
 
 	// Invalid file ID
-	for _, param := range invalidDbIDs {
+	for _, param := range testInvalidDbIDs {
 		response, responseBody = makeRequest(param)
 		if response.StatusCode != http.StatusBadRequest {
 			t.Fatalf("Should've returned with %d with %s, instead got: %d", http.StatusBadRequest, param, response.StatusCode)
 		}
 	}
 
-	// Missing file ID
+	// Non-existent file ID
 	response, responseBody = makeRequest("123123")
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("Should've returned with %d, instead got: %d", http.StatusNotFound, response.StatusCode)
+	}
+}
+
+func TestCreateTagHandler(t *testing.T) {
+	// Setup
+	setUpTest(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	makeRequest := func(body string) (*http.Response, string) {
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/create-tag",
+			bytes.NewBufferString(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+
+		recorder := httptest.NewRecorder()
+		CreateTagHandler(recorder, req)
+
+		response := recorder.Result()
+		defer response.Body.Close()
+
+		responseBody, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return response, string(responseBody)
+	}
+
+	// Valid Tag
+	response, responseBody := makeRequest(fmt.Sprintf(`{
+		"name": "%s"
+	}`, "folk"))
+
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusCreated, response.StatusCode, responseBody)
+	}
+
+	// Duplicate Tag
+	response, responseBody = makeRequest(fmt.Sprintf(`{
+		"name": "%s"
+	}`, "folk"))
+
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusConflict, response.StatusCode, responseBody)
+	}
+
+	// Invalid Names
+	for _, name := range testInvalidTagNames {
+		response, responseBody = makeRequest(fmt.Sprintf(`{
+		"name": "%s"
+		}`, name))
+
+		if response.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
+		}
+	}
+
+	// Missing name field
+	response, responseBody = makeRequest(fmt.Sprintf(`{
+		"hello": "%s"
+	}`, "folk"))
+
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
+	}
+}
+
+func TestRenameTagHandler(t *testing.T) {
+	// Setup
+	setUpTest(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	makeRequest := func(body string) (*http.Response, string) {
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/rename-tag",
+			bytes.NewBufferString(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+
+		recorder := httptest.NewRecorder()
+		RenameTagHandler(recorder, req)
+
+		response := recorder.Result()
+		defer response.Body.Close()
+
+		responseBody, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return response, string(responseBody)
+	}
+
+	// Valid
+	// Twice to test updating the same tag to its own name
+	for range 2 {
+		response, responseBody := makeRequest(fmt.Sprintf(`{
+		"tagID": "%s",
+		"newName": "%s"
+	}`, "3", "folk"))
+
+		if response.StatusCode != http.StatusNoContent {
+			t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNoContent, response.StatusCode, responseBody)
+		}
+	}
+
+	// Non-existent Tag ID
+	response, responseBody := makeRequest(fmt.Sprintf(`{
+		"tagID": "%s",
+		"newName": "%s"
+	}`, "123123", "trance"))
+
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNotFound, response.StatusCode, responseBody)
+	}
+
+	// Updating another tag to same name
+	response, responseBody = makeRequest(fmt.Sprintf(`{
+		"tagID": "%s",
+		"newName": "%s"
+	}`, "2", "folk"))
+
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusConflict, response.StatusCode, responseBody)
+	}
+
+	// Checking all the invalid values
+	for _, dbID := range append(slices.Clone(testInvalidDbIDs), "2") {
+		for _, tagName := range append(slices.Clone(testInvalidTagNames), "guitar") {
+			// This is a valid one, skip it.
+			if dbID == "2" && tagName == "guitar" {
+				continue
+			}
+			response, responseBody = makeRequest(fmt.Sprintf(`{
+				"tagID": "%s",
+				"newName": "%s"
+			}`, dbID, tagName))
+
+			if response.StatusCode != http.StatusBadRequest {
+				t.Fatalf("Should have returned %d. Returned %d instead. tagID: %s name: %s Response: %v", http.StatusBadRequest, response.StatusCode, dbID, tagName, responseBody)
+			}
+		}
+	}
+
+	// Missing tagID
+	response, responseBody = makeRequest(fmt.Sprintf(`{
+		"hello": "%s",
+		"newName": "%s"
+	}`, "2", "folk"))
+
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
+	}
+
+	// Missing newName
+	response, responseBody = makeRequest(fmt.Sprintf(`{
+		"tagID": "%s",
+		"hello": "%s"
+	}`, "2", "folk"))
+
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
 	}
 }
 
@@ -242,7 +416,7 @@ func TestMediaHandler(t *testing.T) {
 	}
 
 	// Invalid file id
-	for _, param := range invalidDbIDs {
+	for _, param := range testInvalidDbIDs {
 		response, responseBody = makeRequest(param)
 		if response.StatusCode != http.StatusBadRequest {
 			t.Fatalf("Should've returned with %d with %s, instead got: %d", http.StatusBadRequest, param, response.StatusCode)

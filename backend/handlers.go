@@ -17,6 +17,8 @@ func SetupServer() http.Handler {
 	mux.HandleFunc("POST /choose-dir", ChooseDirHandler)
 	mux.HandleFunc("GET /tags", ListTagsHandler)
 	mux.HandleFunc("GET /tags/{file_id}", TagsByFileIDHandler)
+	mux.HandleFunc("POST /create-tag", CreateTagHandler)
+	mux.HandleFunc("POST /rename-tag", RenameTagHandler)
 	mux.HandleFunc("GET /media/{file_id}", MediaHandler)
 
 	// Middlewares
@@ -42,7 +44,7 @@ func writeResJSON(w http.ResponseWriter, status int, data map[string]any) {
 	resBody, err := json.Marshal(data)
 	if err != nil {
 		// data could not be marshalled
-		log.Printf("failed to marshal JSON response: %v", err)
+		log.Printf("failed to marshal JSON %v: %v", data, err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -55,7 +57,7 @@ func writeResJSON(w http.ResponseWriter, status int, data map[string]any) {
 	w.WriteHeader(status)
 
 	if _, err := w.Write(resBody); err != nil {
-		log.Printf("failed to write JSON response: %v", err)
+		log.Printf("failed to write JSON %v: %v", resBody, err)
 	}
 }
 
@@ -74,7 +76,7 @@ func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// dirPath missing
+	// dirPath missing or empty
 	if req.DirPath == "" {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
 			"error": "dirPath is required",
@@ -84,36 +86,30 @@ func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Initialize database
 	if err := InitDatabase(req.DirPath); err != nil {
-		log.Println(err)
+		log.Printf("failed to initialize db for path %s: %v", req.DirPath, err)
 
 		writeErr := func(err error) {
 			writeResJSON(w, http.StatusInternalServerError, map[string]any{
-				"error": err,
+				"error": err.Error(),
 			})
 		}
 
-		switch {
-		case errors.Is(err, ErrOpeningDatabase):
-			writeErr(ErrOpeningDatabase)
-
-		case errors.Is(err, ErrDatabaseConnection):
-			writeErr(ErrDatabaseConnection)
-
-		case errors.Is(err, ErrPlaylistDirCreate):
-			writeErr(ErrPlaylistDirCreate)
-
-		case errors.Is(err, ErrTableCreation):
-			writeErr(ErrTableCreation)
-
-		case errors.Is(err, ErrUpdatingFiles):
-			writeErr(ErrUpdatingFiles)
-
-		default:
-			writeResJSON(w, http.StatusInternalServerError, map[string]any{
-				"error": "Unknown error",
-			})
+		knownErrors := []error{
+			ErrOpeningDatabase,
+			ErrDatabaseConnection,
+			ErrPlaylistDirCreate,
+			ErrTableCreation,
+			ErrUpdatingFiles,
 		}
 
+		for _, knownErr := range knownErrors {
+			if errors.Is(err, knownErr) {
+				writeErr(knownErr)
+				return
+			}
+		}
+
+		writeErr(errors.New("Unknown Error"))
 		return
 	}
 
@@ -124,7 +120,7 @@ func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 func ListTagsHandler(w http.ResponseWriter, r *http.Request) {
 	tags, err := ListTagsAll()
 	if err != nil {
-		log.Println(err)
+		log.Printf("failed to list all tags %v", err)
 
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "Failed to query database",
@@ -146,7 +142,7 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 	file_id, err := ValidateDbId(param_file_id)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": err,
+			"error": err.Error(),
 		})
 		return
 	}
@@ -163,7 +159,7 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 	// Listing Tags
 	tags, err := ListTagsByFileID(file_id)
 	if err != nil {
-		log.Println(err)
+		log.Printf("failed to list tags by file id %d: %v", file_id, err)
 
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "Failed to query database",
@@ -176,6 +172,136 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Creates a tag
+func CreateTagHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TagName string `json:"name"`
+	}
+
+	// Invalid JSON
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid JSON",
+		})
+		return
+	}
+
+	// name missing or empty
+	if req.TagName == "" {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "name is required",
+		})
+		return
+	}
+
+	// Validating Name
+	if err := ValidateTagName(req.TagName); err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Create the tag
+	created_id, err := CreateTag(req.TagName)
+	if err != nil {
+		if errors.Is(err, ErrTagAlreadyExists) {
+			writeResJSON(w, http.StatusConflict, map[string]any{
+				"error": ErrTagAlreadyExists.Error(),
+			})
+			return
+		}
+		log.Printf("failed creating tag %s: %v", req.TagName, err)
+
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "Failed to insert into database",
+		})
+		return
+	}
+
+	writeResJSON(w, http.StatusCreated, map[string]any{
+		"id": created_id,
+	})
+}
+
+// Renames a tag
+func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TagID   string `json:"tagID"`
+		NewName string `json:"newName"`
+	}
+
+	// Invalid JSON
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid JSON",
+		})
+		return
+	}
+
+	// TagID is missing or empty
+	if req.TagID == "" {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "tagID is required",
+		})
+		return
+	}
+
+	// newName is missing or empty
+	if req.NewName == "" {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "newName is required",
+		})
+		return
+	}
+
+	// Validate TagID
+	tagID, err := ValidateDbId(req.TagID)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "tagID is invalid",
+		})
+		return
+	}
+
+	// Validate newName
+	if err := ValidateTagName(req.NewName); err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "newName is invalid",
+		})
+		return
+	}
+
+	// Check if tag exists
+	missing, err := CheckIDsInDB("tag", []int64{tagID})
+	if len(missing) != 0 {
+		writeResJSON(w, http.StatusNotFound, map[string]any{
+			"error": "tag not found",
+		})
+		return
+	}
+
+	// Rename the tag
+	if err := RenameTag(tagID, req.NewName); err != nil {
+		if errors.Is(err, ErrTagAlreadyExists) {
+			writeResJSON(w, http.StatusConflict, map[string]any{
+				"error": ErrTagAlreadyExists.Error(),
+			})
+			return
+		}
+		log.Printf("failed renaming tag with id %d to %s: %v", tagID, req.NewName, err)
+
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "Failed to update database",
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // Streaming a media file over http
 func MediaHandler(w http.ResponseWriter, r *http.Request) {
 	param_file_id := r.PathValue("file_id")
@@ -184,7 +310,7 @@ func MediaHandler(w http.ResponseWriter, r *http.Request) {
 	file_id, err := ValidateDbId(param_file_id)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": err,
+			"error": err.Error(),
 		})
 		return
 	}

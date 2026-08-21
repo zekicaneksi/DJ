@@ -161,6 +161,14 @@ Create a tag.
 }
 ```
 
+#### 409 - Conflict
+
+```json
+{
+  "error": "tag name already exists"
+}
+```
+
 #### 500 - Internal Server Error
 
 ```json
@@ -199,6 +207,14 @@ Empty body
 ```json
 {
   "error": "Tag not found"
+}
+```
+
+#### 409 - Conflict
+
+```json
+{
+  "error": "tag name already exists"
 }
 ```
 

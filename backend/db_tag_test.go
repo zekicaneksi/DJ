@@ -26,16 +26,17 @@ func TestCreateTag(t *testing.T) {
 		}
 	}
 
+	// Valid
 	createTag("techno", false)
 	createTag("instrumental elitist", false)
 
-	createTag("techno", true)      // Tag with the same name
-	createTag("  ", true)          // Tag with only spaces
-	createTag("    pop", true)     // Tag with leading spaces
-	createTag("pop    ", true)     // Tag with trailing spaces
-	createTag("    pop    ", true) // Tag with surrounding spaces
-	createTag("a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name ", true)
+	// Tag with an existing name
+	createTag("techno", true)
 
+	// Invalid ones
+	for _, name := range testInvalidTagNames {
+		createTag(name, true)
+	}
 }
 
 func TestRenameTag(t *testing.T) {
@@ -73,17 +74,21 @@ func TestRenameTag(t *testing.T) {
 		}
 	}
 
+	// Valid
 	renameTag("techno", false)
-	renameTag("instrumental elitist", false)
-	renameTag("instrumental elitist", false)
 
-	renameTag("melody", true)      // Tag name that already exists
-	renameTag("  ", true)          // Tag with only spaces
-	renameTag("    pop", true)     // Tag with leading spaces
-	renameTag("pop    ", true)     // Tag with trailing spaces
-	renameTag("    pop    ", true) // Tag with surrounding spaces
-	renameTag("a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name ", true)
+	// Same one twice
+	for range 2 {
+		renameTag("instrumental elitist", false)
+	}
 
+	// Tag name that already exists
+	renameTag("melody", true)
+
+	// Invalid ones
+	for _, name := range testInvalidTagNames {
+		renameTag(name, true)
+	}
 }
 
 func TestDeleteTag(t *testing.T) {

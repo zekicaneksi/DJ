@@ -7,7 +7,9 @@ var (
 	ErrOnlySpaces        = errors.New("consists of only spaces")
 	ErrSurroundingSpaces = errors.New("contains trailing or leading spaces")
 
-	ErrTagNameTooLong = errors.New("tag name is too long")
+	// Tag Name Errors
+	ErrTagNameTooLong   = errors.New("tag name is too long")
+	ErrTagAlreadyExists = errors.New("tag name already exists")
 
 	// Database Errors
 	ErrOpeningDatabase    = errors.New("could not create/open the database file")

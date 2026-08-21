@@ -1,5 +1,12 @@
 package main
 
+import (
+	"errors"
+
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
+)
+
 // Creates a tag and returns the created tag's id
 func CreateTag(tagName string) (int64, error) {
 	if err := ValidateTagName(tagName); err != nil {
@@ -11,6 +18,11 @@ func CreateTag(tagName string) (int64, error) {
 		tagName,
 	)
 	if err != nil {
+		var sqliteErr *sqlite.Error
+		if errors.As(err, &sqliteErr) &&
+			sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+			return 0, ErrTagAlreadyExists
+		}
 		return 0, err
 	}
 
@@ -34,6 +46,12 @@ func RenameTag(tagID int64, newName string) error {
 		WHERE id = ?
 	`, newName, tagID)
 	if err != nil {
+		var sqliteErr *sqlite.Error
+		if errors.As(err, &sqliteErr) &&
+			sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+			return ErrTagAlreadyExists
+		}
+
 		return err
 	}
 

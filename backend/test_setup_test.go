@@ -9,9 +9,17 @@ import (
 )
 
 var (
-	testDirectoryPath = "test"
-	testFileContents  = "Hello from DJ!\n"
-	invalidDbIDs      = []string{"hello", "", "-123", "0"}
+	testDirectoryPath   = "test"
+	testFileContents    = "Hello from DJ!\n"
+	testInvalidDbIDs    = []string{"hello", "", "-123", "0"}
+	testInvalidTagNames = []string{
+		"",               // Empty
+		"  ",             // Tag with only spaces
+		"    violin",     // Tag with leading spaces
+		"violin    ",     // Tag with trailing spaces
+		"    violin    ", // Tag with surrounding spaces
+		"a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name a very long name", // long
+	}
 )
 
 // Delete all the test files from the test directory
