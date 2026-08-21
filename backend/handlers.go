@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 )
 
+// Setup Server
 func SetupServer() http.Handler {
 	mux := http.NewServeMux()
 
@@ -26,7 +27,7 @@ func SetupServer() http.Handler {
 	return handler
 }
 
-// To protect against huge bodies.
+// To protect against huge bodies
 func maxBodySizeMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MiB
@@ -119,6 +120,7 @@ func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Lists all tags
 func ListTagsHandler(w http.ResponseWriter, r *http.Request) {
 	tags, err := ListTagsAll()
 	if err != nil {
@@ -136,6 +138,7 @@ func ListTagsHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Lists tags associated to a file
 func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 	param_file_id := r.PathValue("file_id")
 
