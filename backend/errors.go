@@ -15,6 +15,12 @@ var (
 	ErrPlaylistDirCreate  = errors.New("could not create the playlist directory")
 	ErrTableCreation      = errors.New("could not create the database tables")
 	ErrUpdatingFiles      = errors.New("could not update the files for the database")
+
+	// Tag Group Errors
+	ErrTagGroupEmptyArr    = errors.New("empty tag group array provided")
+	ErrTagGroupEmpty       = errors.New("a tag group is empty")
+	ErrTagGroupAmount      = errors.New("tag group amount has to be bigger than 0")
+	ErrTagGroupDuplicateID = errors.New("duplicate tag id in a tag group")
 )
 
 // Can be used when validating a JSON with many fields

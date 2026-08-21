@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -23,16 +22,16 @@ func ValidateTagName(name string) error {
 
 func ValidateTagGroups(tagGroups []TagGroup) error {
 	if len(tagGroups) == 0 {
-		return fmt.Errorf("empty tag group array provided")
+		return ErrTagGroupEmptyArr
 	}
 
 	for _, tagGroup := range tagGroups {
 		if len(tagGroup.TagsIDs) == 0 {
-			return fmt.Errorf("tag group is empty")
+			return ErrTagGroupEmpty
 		}
 
 		if tagGroup.Amount <= 0 {
-			return fmt.Errorf("tag group amount has to be bigger than 0")
+			return ErrTagGroupAmount
 		}
 
 		// Looking for duplicate ids, and returning error if found
@@ -40,7 +39,7 @@ func ValidateTagGroups(tagGroups []TagGroup) error {
 
 		for _, tagID := range tagGroup.TagsIDs {
 			if _, exists := tagSet[tagID]; exists {
-				return fmt.Errorf("duplicate tag ID %d in tag group", tagID)
+				return ErrTagGroupDuplicateID
 			}
 
 			tagSet[tagID] = struct{}{}

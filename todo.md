@@ -8,7 +8,6 @@
 
 ### List
 
-- the ValidateTagGroups function validation.go should have errors from errors. the function above has them too.
 - Code the backend routes by design (design/routes_api.md), write their tests as well. (One route is already written "ChooseDirHandler", you can take it as an example.)
     - Validate the input in these routes. Validation functions are already written in `validation.go`;
         - CreateTag
