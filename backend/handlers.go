@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -21,6 +22,7 @@ func SetupServer() http.Handler {
 	mux.HandleFunc("POST /create-tag", CreateTagHandler)
 	mux.HandleFunc("POST /rename-tag", RenameTagHandler)
 	mux.HandleFunc("POST /delete-tag", DeleteTagHandler)
+	mux.HandleFunc("POST /update-tag", UpdateTagHandler)
 	mux.HandleFunc("GET /media/{file_id}", MediaHandler)
 
 	// Middlewares
@@ -331,6 +333,68 @@ func DeleteTagHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("error when deleting tag %d: %v", req.TagID, err)
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "internal error when deleting tag",
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Updates a file's tags
+func UpdateTagHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		FileID *int64   `json:"fileID"`
+		TagIDs *[]int64 `json:"tagIDs"`
+	}
+
+	// Invalid Request Body
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	// TagIDs missing
+	if req.TagIDs == nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "tagIDs is required",
+		})
+		return
+	}
+
+	// fileID missing
+	if req.FileID == nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "fileID is required",
+		})
+		return
+	}
+
+	// File not found
+	missing, err := CheckIDsInDB("file", []int64{*req.FileID})
+	if len(missing) != 0 {
+		writeResJSON(w, http.StatusNotFound, map[string]any{
+			"error": "file not found",
+		})
+		return
+	}
+
+	// Tag not found
+	missing, err = CheckIDsInDB("tag", *req.TagIDs)
+	if len(missing) != 0 {
+		writeResJSON(w, http.StatusNotFound, map[string]any{
+			"error": fmt.Sprintf("tag not found: %v", missing),
+		})
+		return
+	}
+
+	// Update
+	if err := UpdateTags(*req.FileID, *req.TagIDs); err != nil {
+		log.Printf("error when updating tag for %d with %v: %v", *req.FileID, *req.TagIDs, err)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when updating tags",
 		})
 		return
 	}

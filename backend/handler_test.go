@@ -339,6 +339,53 @@ func TestDeleteTagHandler(t *testing.T) {
 	}
 }
 
+func TestUpdateTagHandler(t *testing.T) {
+	// Setup
+	setUpTest(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	doRequest := func(body string, expectedStatusCode int) (*http.Response, string) {
+		return makeRequest(
+			t,
+			http.MethodPost,
+			"/update-tag",
+			body,
+			UpdateTagHandler,
+			expectedStatusCode,
+		)
+	}
+
+	// Valid
+	for range 2 {
+		doRequest(`{"fileID": 2, "tagIDs": [1,2,3]}`, http.StatusNoContent)
+	}
+
+	// Valid, empty tagIDs
+	doRequest(`{"fileID": 2, "tagIDs": []}`, http.StatusNoContent)
+
+	// fileID missing
+	doRequest(`{"hello": 2, "tagIDs": [1,2,3]}`, http.StatusBadRequest)
+
+	// tagIDs missing
+	doRequest(`{"fileID": 2, "hello": [1,2,3]}`, http.StatusBadRequest)
+
+	// Invalid fileID
+	doRequest(`{"fileID": "2", "tagIDs": [1,2,3]}`, http.StatusBadRequest)
+
+	// Invalid tagIDs
+	doRequest(`{"fileID": 2, "tagIDs": 35}`, http.StatusBadRequest)
+
+	// Non-existent fileID
+	doRequest(`{"fileID": 123, "tagIDs": [1,2,3]}`, http.StatusNotFound)
+
+	// Non-existent tag ID
+	doRequest(`{"fileID": 2, "tagIDs": [1,2,123,456]}`, http.StatusNotFound)
+}
+
 func TestMediaHandler(t *testing.T) {
 	// Setup
 	setUpTest(t)
