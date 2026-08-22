@@ -11,7 +11,6 @@ import (
 var (
 	testDirectoryPath   = "test"
 	testFileContents    = "Hello from DJ!\n"
-	testInvalidDbIDs    = []string{"hello", "", "-123", "0"}
 	testInvalidTagNames = []string{
 		"",               // Empty
 		"  ",             // Tag with only spaces

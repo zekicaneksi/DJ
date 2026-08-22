@@ -87,7 +87,7 @@ Get the list of all tags.
 
 ```text
 {
-    "tags": []Tag { ID: int, Name: string }
+    "tags": []Tag { ID: int64, Name: string }
 }
 ```
 
@@ -107,7 +107,7 @@ Get the list of tags of a file by id.
 
 ```text
 {
-    "tags": []Tag { ID: int, Name: string }
+    "tags": []Tag { ID: int64, Name: string }
 }
 ```
 
@@ -149,7 +149,7 @@ Create a tag.
 
 ```text
 {
-    "id": int
+    "id": int64
 }
 ```
 
@@ -183,7 +183,7 @@ Rename a tag.
 
 ```text
 {
-    "tagID": int,
+    "tagID": int64,
     "newName": string
 }
 ```
@@ -232,7 +232,7 @@ Delete a tag.
 
 ```text
 {
-    "tagID": int
+    "tagID": int64
 }
 ```
 
@@ -272,8 +272,8 @@ Updates tags of a file.
 
 ```text
 {
-    "fileID": int,
-    "tagIDs": []int
+    "fileID": int64,
+    "tagIDs": []int64
 }
 ```
 
@@ -315,7 +315,7 @@ Get the list of files from the backend by tag ids.
 
 ```text
 {
-    "tagIDs": []int
+    "tagIDs": []int64
 }
 ```
 
@@ -323,7 +323,7 @@ Get the list of files from the backend by tag ids.
 
 ```text
 {
-    "files": []File { ID: int, Name: string }
+    "files": []File { ID: int64, Name: string }
 }
 ```
 
@@ -401,7 +401,7 @@ Creates a playlist file.
 
 ```text
 {
-    "tagGroups": [][]TagGroup { TagIDs: []int, Amount: int }
+    "tagGroups": [][]TagGroup { TagIDs: []int64, Amount: int }
 }
 ```
 

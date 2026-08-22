@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"slices"
 	"testing"
 )
 
@@ -210,10 +209,11 @@ func TestTagsByFileIDHandler(t *testing.T) {
 		t.Fatalf("Should have returned 2 elements, instead got: %v", responseTags)
 	}
 
-	// Invalid file ID
-	for _, param := range testInvalidDbIDs {
-		doRequest(param, http.StatusBadRequest)
-	}
+	// Empty string
+	doRequest("", http.StatusBadRequest)
+
+	// String
+	doRequest("hello", http.StatusBadRequest)
 
 	// Non-existent file ID
 	doRequest("123123", http.StatusNotFound)
@@ -277,32 +277,28 @@ func TestRenameTagHandler(t *testing.T) {
 	// Valid
 	// Twice to test updating the same tag to its own name
 	for range 2 {
-		doRequest(`{"tagID": "3","newName": "folk"}`, http.StatusNoContent)
+		doRequest(`{"tagID": 3,"newName": "folk"}`, http.StatusNoContent)
 	}
 
 	// Non-existent Tag ID
-	doRequest(`{"tagID": "123123","newName": "trance"}`, http.StatusNotFound)
+	doRequest(`{"tagID": 123123,"newName": "trance"}`, http.StatusNotFound)
 
 	// Updating another tag to same name
-	doRequest(`{"tagID": "2","newName": "folk"}`, http.StatusConflict)
+	doRequest(`{"tagID": 2,"newName": "folk"}`, http.StatusConflict)
 
 	// Checking all the invalid values
-	for _, dbID := range append(slices.Clone(testInvalidDbIDs), "2") {
-		for _, tagName := range append(slices.Clone(testInvalidTagNames), "guitar") {
-			// This is a valid one, skip it.
-			if dbID == "2" && tagName == "guitar" {
-				continue
-			}
-
-			doRequest(fmt.Sprintf(`{"tagID": "%s","newName": "%s"}`, dbID, tagName), http.StatusBadRequest)
-		}
+	for _, tagName := range testInvalidTagNames {
+		doRequest(fmt.Sprintf(`{"tagID": "%d","newName": "%s"}`, 1, tagName), http.StatusBadRequest)
 	}
 
+	// Invalid tag id
+	doRequest(fmt.Sprintf(`{"tagID": "%s","newName": "%s"}`, "hello", "fresh"), http.StatusBadRequest)
+
 	// Missing tagID
-	doRequest(`{"hello": "2","newName": "folk"}`, http.StatusBadRequest)
+	doRequest(`{"hello": 2, "newName": "folk"}`, http.StatusBadRequest)
 
 	// Missing newName
-	doRequest(`{"tagID": "2","hello": "folk"}`, http.StatusBadRequest)
+	doRequest(`{"tagID": 2, "hello": "folk"}`, http.StatusBadRequest)
 }
 
 func TestDeleteTagHandler(t *testing.T) {
@@ -326,16 +322,16 @@ func TestDeleteTagHandler(t *testing.T) {
 	}
 
 	// Valid
-	doRequest(`{"tagID": "2"}`, http.StatusNoContent)
+	doRequest(`{"tagID": 2}`, http.StatusNoContent)
 
 	// Non-existent Tag ID
-	doRequest(`{"tagID": "123123"}`, http.StatusNotFound)
+	doRequest(`{"tagID": 123123}`, http.StatusNotFound)
 
 	// Invalid Requests
 	invalidRequests := []string{
-		`{"hello": "2"}`,   // Missing tagID
+		`{"hello": 2}`,     // Missing tagID
 		`{"tagID": "abc"}`, // Invalid tagId
-		`{"tagID": ""}`,    // Empty
+		`{"tagID": ""}`,    // Empty string
 	}
 
 	for _, body := range invalidRequests {
@@ -376,10 +372,11 @@ func TestMediaHandler(t *testing.T) {
 		t.Fatalf("expected %q, got %q", testFileContents, responseBody)
 	}
 
-	// Invalid file id
-	for _, param := range testInvalidDbIDs {
-		doRequest(param, http.StatusBadRequest)
-	}
+	// Empty string
+	doRequest("", http.StatusBadRequest)
+
+	// String
+	doRequest("hello", http.StatusBadRequest)
 
 	// File not found
 	doRequest("123123123", http.StatusNotFound)

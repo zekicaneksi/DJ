@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strconv"
 )
 
 // Setup Server
@@ -65,20 +66,20 @@ func writeResJSON(w http.ResponseWriter, status int, data map[string]any) {
 // Choose a directory and set up the database in the backend.
 func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		DirPath string `json:"dirPath"`
+		DirPath *string `json:"dirPath"`
 	}
 
-	// Invalid JSON
+	// Invalid Request Body
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid JSON",
+			"error": "Invalid request body",
 		})
 		return
 	}
 
 	// dirPath missing or empty
-	if req.DirPath == "" {
+	if req.DirPath == nil || len(*req.DirPath) == 0 {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
 			"error": "dirPath is required",
 		})
@@ -86,8 +87,8 @@ func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Initialize database
-	if err := InitDatabase(req.DirPath); err != nil {
-		log.Printf("failed to initialize db for path %s: %v", req.DirPath, err)
+	if err := InitDatabase(*req.DirPath); err != nil {
+		log.Printf("failed to initialize db for path %s: %v", *req.DirPath, err)
 
 		writeErr := func(err error) {
 			writeResJSON(w, http.StatusInternalServerError, map[string]any{
@@ -126,7 +127,6 @@ func ListTagsHandler(w http.ResponseWriter, r *http.Request) {
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "Failed to query database",
 		})
-
 		return
 	}
 
@@ -140,10 +140,10 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 	param_file_id := r.PathValue("file_id")
 
 	// Validating file id
-	file_id, err := ValidateDbId(param_file_id)
+	file_id, err := strconv.ParseInt(param_file_id, 10, 64)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": err.Error(),
+			"error": "file_id is not valid int64",
 		})
 		return
 	}
@@ -176,20 +176,20 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 // Creates a tag
 func CreateTagHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		TagName string `json:"name"`
+		TagName *string `json:"name"`
 	}
 
-	// Invalid JSON
+	// Invalid Request Body
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid JSON",
+			"error": "Invalid request body",
 		})
 		return
 	}
 
 	// name missing or empty
-	if req.TagName == "" {
+	if req.TagName == nil || len(*req.TagName) == 0 {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
 			"error": "name is required",
 		})
@@ -197,7 +197,7 @@ func CreateTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validating Name
-	if err := ValidateTagName(req.TagName); err != nil {
+	if err := ValidateTagName(*req.TagName); err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
 			"error": err.Error(),
 		})
@@ -205,7 +205,7 @@ func CreateTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the tag
-	created_id, err := CreateTag(req.TagName)
+	created_id, err := CreateTag(*req.TagName)
 	if err != nil {
 		if errors.Is(err, ErrTagAlreadyExists) {
 			writeResJSON(w, http.StatusConflict, map[string]any{
@@ -213,7 +213,7 @@ func CreateTagHandler(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		log.Printf("failed creating tag %s: %v", req.TagName, err)
+		log.Printf("failed creating tag %s: %v", *req.TagName, err)
 
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "Failed to insert into database",
@@ -229,21 +229,21 @@ func CreateTagHandler(w http.ResponseWriter, r *http.Request) {
 // Renames a tag
 func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		TagID   string `json:"tagID"`
-		NewName string `json:"newName"`
+		TagID   *int64  `json:"tagID"`
+		NewName *string `json:"newName"`
 	}
 
-	// Invalid JSON
+	// Invalid Request Body
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid JSON",
+			"error": "Invalid request body",
 		})
 		return
 	}
 
-	// TagID is missing or empty
-	if req.TagID == "" {
+	// TagID is missing
+	if req.TagID == nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
 			"error": "tagID is required",
 		})
@@ -251,32 +251,23 @@ func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// newName is missing or empty
-	if req.NewName == "" {
+	if req.NewName == nil || len(*req.NewName) == 0 {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
 			"error": "newName is required",
 		})
 		return
 	}
 
-	// Validate TagID
-	tagID, err := ValidateDbId(req.TagID)
-	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "tagID is invalid",
-		})
-		return
-	}
-
 	// Validate newName
-	if err := ValidateTagName(req.NewName); err != nil {
+	if err := ValidateTagName(*req.NewName); err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "newName is invalid",
+			"error": err.Error(),
 		})
 		return
 	}
 
 	// Check if tag exists
-	missing, err := CheckIDsInDB("tag", []int64{tagID})
+	missing, err := CheckIDsInDB("tag", []int64{*req.TagID})
 	if len(missing) != 0 {
 		writeResJSON(w, http.StatusNotFound, map[string]any{
 			"error": "tag not found",
@@ -285,14 +276,14 @@ func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rename the tag
-	if err := RenameTag(tagID, req.NewName); err != nil {
+	if err := RenameTag(*req.TagID, *req.NewName); err != nil {
 		if errors.Is(err, ErrTagAlreadyExists) {
 			writeResJSON(w, http.StatusConflict, map[string]any{
 				"error": ErrTagAlreadyExists.Error(),
 			})
 			return
 		}
-		log.Printf("failed renaming tag with id %d to %s: %v", tagID, req.NewName, err)
+		log.Printf("failed renaming tag with id %d to %s: %v", *req.TagID, *req.NewName, err)
 
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "Failed to update database",
@@ -306,37 +297,28 @@ func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
 // Deletes a tag
 func DeleteTagHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		TagID string `json:"tagID"`
+		TagID *int64 `json:"tagID"`
 	}
 
-	// Invalid JSON
+	// Invalid Request Body
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid JSON",
+			"error": "Invalid request body",
 		})
 		return
 	}
 
-	// TagID is missing or empty
-	if req.TagID == "" {
+	// TagID is missing
+	if req.TagID == nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
 			"error": "tagID is required",
 		})
 		return
 	}
 
-	// Validate TagID
-	tagID, err := ValidateDbId(req.TagID)
-	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "tagID is invalid",
-		})
-		return
-	}
-
 	// Check if tag exists
-	missing, err := CheckIDsInDB("tag", []int64{tagID})
+	missing, err := CheckIDsInDB("tag", []int64{*req.TagID})
 	if len(missing) != 0 {
 		writeResJSON(w, http.StatusNotFound, map[string]any{
 			"error": "tag not found",
@@ -345,8 +327,8 @@ func DeleteTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete the tag
-	if err := DeleteTag(tagID); err != nil {
-		log.Printf("error when deleting tag %d: %v", tagID, err)
+	if err := DeleteTag(*req.TagID); err != nil {
+		log.Printf("error when deleting tag %d: %v", req.TagID, err)
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "internal error when deleting tag",
 		})
@@ -361,10 +343,10 @@ func MediaHandler(w http.ResponseWriter, r *http.Request) {
 	param_file_id := r.PathValue("file_id")
 
 	// Validating file id
-	file_id, err := ValidateDbId(param_file_id)
+	file_id, err := strconv.ParseInt(param_file_id, 10, 64)
 	if err != nil {
 		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": err.Error(),
+			"error": "invalid file_id",
 		})
 		return
 	}

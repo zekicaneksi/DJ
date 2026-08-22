@@ -4,22 +4,8 @@ import (
 	"fmt"
 	"log"
 	"slices"
-	"strconv"
 	"strings"
 )
-
-// Checks if given string is a valid database ID
-func ValidateDbId(param_id string) (int64, error) {
-	id, err := strconv.ParseInt(param_id, 10, 64)
-	if err != nil {
-		return 0, ErrIDInvalid
-	}
-	if id <= 0 {
-		return 0, ErrIDNotPositive
-	}
-
-	return id, nil
-}
 
 // Checks if given string is a valid Tag name
 func ValidateTagName(name string) error {
