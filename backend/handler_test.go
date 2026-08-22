@@ -11,12 +11,16 @@ import (
 	"testing"
 )
 
+// Makes an http request to a given handler
+// Throws error if expected http status code isn't returned
+// Returns the response and its body
 func makeRequest(
 	t *testing.T,
 	method string,
 	target string,
 	body string,
 	handler http.HandlerFunc,
+	expectedStatusCode int,
 ) (*http.Response, string) {
 	t.Helper()
 
@@ -43,9 +47,18 @@ func makeRequest(
 		t.Fatal(err)
 	}
 
+	if response.StatusCode != expectedStatusCode {
+		t.Fatalf(`Should have returned %d.
+		Returned %d instead.
+		Sent body: %v,
+		Response: %v`,
+			expectedStatusCode, response.StatusCode, body, string(responseBody))
+	}
+
 	return response, string(responseBody)
 }
 
+// Same thing with makeRequest function but for path-value routes (ie: /tag/{tag_id})
 func makePathValueRequest(
 	t *testing.T,
 	method string,
@@ -53,6 +66,7 @@ func makePathValueRequest(
 	pathName string,
 	pathValue string,
 	handler http.HandlerFunc,
+	expectedStatusCode int,
 ) (*http.Response, string) {
 	t.Helper()
 
@@ -79,6 +93,15 @@ func makePathValueRequest(
 		t.Fatal(err)
 	}
 
+	if response.StatusCode != expectedStatusCode {
+		t.Fatalf(`Should have returned %d.
+		Returned %d instead.
+		Sent pathname: %s,
+		pathvalue: %s,
+		Response: %v`,
+			expectedStatusCode, response.StatusCode, pathName, pathValue, string(responseBody))
+	}
+
 	return response, string(responseBody)
 }
 
@@ -87,50 +110,33 @@ func TestChooseDirHandler(t *testing.T) {
 	setUpTest(t)
 
 	// Request
-	doRequest := func(body string) (*http.Response, string) {
+	doRequest := func(body string, expectedStatusCode int) (*http.Response, string) {
 		return makeRequest(
 			t,
 			http.MethodPost,
 			"/choose-dir",
 			body,
 			ChooseDirHandler,
+			expectedStatusCode,
 		)
 	}
 
 	// Valid Path
 	// First run initializes a new database, second one opens the existing one
 	for range 2 {
-		response, responseBody := doRequest(fmt.Sprintf(`{
-		"dirPath": "%s"
-	}`, testDirectoryPath))
-
-		if response.StatusCode != http.StatusNoContent {
-			t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNoContent, response.StatusCode, responseBody)
-		}
+		doRequest(fmt.Sprintf(`{
+			"dirPath": "%s"
+		}`, testDirectoryPath), http.StatusNoContent)
 	}
 
 	// Invalid Path
-	response, responseBody := doRequest((`{"dirPath": "123123"}`))
-
-	if response.StatusCode != http.StatusInternalServerError {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusInternalServerError, response.StatusCode, responseBody)
-	}
+	doRequest((`{"dirPath": "123123"}`), http.StatusInternalServerError)
 
 	// Invalid JSON
-	response, responseBody = doRequest(`ascascascasc`)
-
-	if response.StatusCode != http.StatusBadRequest {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
-	}
+	doRequest(`ascascascasc`, http.StatusBadRequest)
 
 	// dirPath Missing
-	response, responseBody = doRequest(`{
-		"message": "Hello"
-	}`)
-
-	if response.StatusCode != http.StatusBadRequest {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
-	}
+	doRequest(`{"message": "Hello"}`, http.StatusBadRequest)
 }
 
 func TestListTagsHandler(t *testing.T) {
@@ -142,7 +148,7 @@ func TestListTagsHandler(t *testing.T) {
 	defer CloseDB()
 
 	// Request
-	response, responseBody := makeRequest(t, http.MethodGet, "/tags", "", ListTagsHandler)
+	response, responseBody := makeRequest(t, http.MethodGet, "/tags", "", ListTagsHandler, http.StatusOK)
 
 	if response.StatusCode == http.StatusOK {
 		var responseVals struct {
@@ -171,7 +177,7 @@ func TestTagsByFileIDHandler(t *testing.T) {
 	defer CloseDB()
 
 	// Request
-	doRequest := func(fileID string) (*http.Response, string) {
+	doRequest := func(fileID string, expectedStatusCode int) (*http.Response, string) {
 		return makePathValueRequest(
 			t,
 			http.MethodGet,
@@ -179,6 +185,7 @@ func TestTagsByFileIDHandler(t *testing.T) {
 			"file_id",
 			fileID,
 			TagsByFileIDHandler,
+			expectedStatusCode,
 		)
 	}
 
@@ -196,11 +203,7 @@ func TestTagsByFileIDHandler(t *testing.T) {
 	}
 
 	// Valid Request
-	response, responseBody := doRequest("3")
-
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("Should've returned %d, instead got: %d", http.StatusOK, response.StatusCode)
-	}
+	_, responseBody := doRequest("3", http.StatusOK)
 
 	responseTags := marshalResponse(responseBody)
 	if len(responseTags) != 2 {
@@ -209,19 +212,11 @@ func TestTagsByFileIDHandler(t *testing.T) {
 
 	// Invalid file ID
 	for _, param := range testInvalidDbIDs {
-		response, responseBody = doRequest(param)
-
-		if response.StatusCode != http.StatusBadRequest {
-			t.Fatalf("Should've returned with %d with %s, instead got: %d", http.StatusBadRequest, param, response.StatusCode)
-		}
+		doRequest(param, http.StatusBadRequest)
 	}
 
 	// Non-existent file ID
-	response, responseBody = doRequest("123123")
-
-	if response.StatusCode != http.StatusNotFound {
-		t.Fatalf("Should've returned with %d, instead got: %d", http.StatusNotFound, response.StatusCode)
-	}
+	doRequest("123123", http.StatusNotFound)
 }
 
 func TestCreateTagHandler(t *testing.T) {
@@ -233,47 +228,30 @@ func TestCreateTagHandler(t *testing.T) {
 	defer CloseDB()
 
 	// Request
-	doRequest := func(body string) (*http.Response, string) {
+	doRequest := func(body string, expectedStatusCode int) (*http.Response, string) {
 		return makeRequest(
 			t,
 			http.MethodPost,
 			"/create-tag",
 			body,
 			CreateTagHandler,
+			expectedStatusCode,
 		)
 	}
 
 	// Valid Tag
-	response, responseBody := doRequest(`{"name": "folk"}`)
-
-	if response.StatusCode != http.StatusCreated {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusCreated, response.StatusCode, responseBody)
-	}
+	doRequest(`{"name": "folk"}`, http.StatusCreated)
 
 	// Duplicate Tag
-	response, responseBody = doRequest(`{"name": "folk"}`)
-
-	if response.StatusCode != http.StatusConflict {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusConflict, response.StatusCode, responseBody)
-	}
+	doRequest(`{"name": "folk"}`, http.StatusConflict)
 
 	// Invalid Names
 	for _, name := range testInvalidTagNames {
-		response, responseBody = doRequest(fmt.Sprintf(`{
-		"name": "%s"
-	}`, name))
-
-		if response.StatusCode != http.StatusBadRequest {
-			t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
-		}
+		doRequest(fmt.Sprintf(`{"name": "%s"}`, name), http.StatusBadRequest)
 	}
 
 	// Missing name field
-	response, responseBody = doRequest(`{"hello": "folk"}`)
-
-	if response.StatusCode != http.StatusBadRequest {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
-	}
+	doRequest(`{"hello": "folk"}`, http.StatusBadRequest)
 }
 
 func TestRenameTagHandler(t *testing.T) {
@@ -285,39 +263,28 @@ func TestRenameTagHandler(t *testing.T) {
 	defer CloseDB()
 
 	// Request
-	doRequest := func(body string) (*http.Response, string) {
+	doRequest := func(body string, expectedStatusCode int) (*http.Response, string) {
 		return makeRequest(
 			t,
 			http.MethodPost,
 			"/rename-tag",
 			body,
 			RenameTagHandler,
+			expectedStatusCode,
 		)
 	}
 
 	// Valid
 	// Twice to test updating the same tag to its own name
 	for range 2 {
-		response, responseBody := doRequest(`{"tagID": "3","newName": "folk"}`)
-
-		if response.StatusCode != http.StatusNoContent {
-			t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNoContent, response.StatusCode, responseBody)
-		}
+		doRequest(`{"tagID": "3","newName": "folk"}`, http.StatusNoContent)
 	}
 
 	// Non-existent Tag ID
-	response, responseBody := doRequest(`{"tagID": "123123","newName": "trance"}`)
-
-	if response.StatusCode != http.StatusNotFound {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNotFound, response.StatusCode, responseBody)
-	}
+	doRequest(`{"tagID": "123123","newName": "trance"}`, http.StatusNotFound)
 
 	// Updating another tag to same name
-	response, responseBody = doRequest(`{"tagID": "2","newName": "folk"}`)
-
-	if response.StatusCode != http.StatusConflict {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusConflict, response.StatusCode, responseBody)
-	}
+	doRequest(`{"tagID": "2","newName": "folk"}`, http.StatusConflict)
 
 	// Checking all the invalid values
 	for _, dbID := range append(slices.Clone(testInvalidDbIDs), "2") {
@@ -327,30 +294,15 @@ func TestRenameTagHandler(t *testing.T) {
 				continue
 			}
 
-			response, responseBody = doRequest(fmt.Sprintf(`{
-				"tagID": "%s",
-				"newName": "%s"
-			}`, dbID, tagName))
-
-			if response.StatusCode != http.StatusBadRequest {
-				t.Fatalf("Should have returned %d. Returned %d instead. tagID: %s name: %s Response: %v", http.StatusBadRequest, response.StatusCode, dbID, tagName, responseBody)
-			}
+			doRequest(fmt.Sprintf(`{"tagID": "%s","newName": "%s"}`, dbID, tagName), http.StatusBadRequest)
 		}
 	}
 
 	// Missing tagID
-	response, responseBody = doRequest(`{"hello": "2","newName": "folk"}`)
-
-	if response.StatusCode != http.StatusBadRequest {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
-	}
+	doRequest(`{"hello": "2","newName": "folk"}`, http.StatusBadRequest)
 
 	// Missing newName
-	response, responseBody = doRequest(`{"tagID": "2","hello": "folk"}`)
-
-	if response.StatusCode != http.StatusBadRequest {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusBadRequest, response.StatusCode, responseBody)
-	}
+	doRequest(`{"tagID": "2","hello": "folk"}`, http.StatusBadRequest)
 }
 
 func TestDeleteTagHandler(t *testing.T) {
@@ -362,29 +314,22 @@ func TestDeleteTagHandler(t *testing.T) {
 	defer CloseDB()
 
 	// Request
-	doRequest := func(body string) (*http.Response, string) {
+	doRequest := func(body string, expectedStatusCode int) (*http.Response, string) {
 		return makeRequest(
 			t,
 			http.MethodPost,
 			"/delete-tag",
 			body,
 			DeleteTagHandler,
+			expectedStatusCode,
 		)
 	}
 
 	// Valid
-	response, responseBody := doRequest(`{"tagID": "2"}`)
-
-	if response.StatusCode != http.StatusNoContent {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNoContent, response.StatusCode, responseBody)
-	}
+	doRequest(`{"tagID": "2"}`, http.StatusNoContent)
 
 	// Non-existent Tag ID
-	response, responseBody = doRequest(`{"tagID": "123123"}`)
-
-	if response.StatusCode != http.StatusNotFound {
-		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNotFound, response.StatusCode, responseBody)
-	}
+	doRequest(`{"tagID": "123123"}`, http.StatusNotFound)
 
 	// Invalid Requests
 	invalidRequests := []string{
@@ -394,11 +339,7 @@ func TestDeleteTagHandler(t *testing.T) {
 	}
 
 	for _, body := range invalidRequests {
-		response, responseBody = doRequest(body)
-
-		if response.StatusCode != http.StatusBadRequest {
-			t.Fatalf("Should have returned %d. Returned %d instead. Data: %s, Response: %v", http.StatusBadRequest, response.StatusCode, body, responseBody)
-		}
+		doRequest(body, http.StatusBadRequest)
 	}
 }
 
@@ -416,7 +357,7 @@ func TestMediaHandler(t *testing.T) {
 	defer CloseDB()
 
 	// Request
-	doRequest := func(fileID string) (*http.Response, string) {
+	doRequest := func(fileID string, expectedStatusCode int) (*http.Response, string) {
 		return makePathValueRequest(
 			t,
 			http.MethodGet,
@@ -424,15 +365,12 @@ func TestMediaHandler(t *testing.T) {
 			"file_id",
 			fileID,
 			MediaHandler,
+			expectedStatusCode,
 		)
 	}
 
 	// Valid Request
-	response, responseBody := doRequest("1")
-
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("Should've returned %d, instead got: %d", http.StatusOK, response.StatusCode)
-	}
+	_, responseBody := doRequest("1", http.StatusOK)
 
 	if responseBody != testFileContents {
 		t.Fatalf("expected %q, got %q", testFileContents, responseBody)
@@ -440,17 +378,9 @@ func TestMediaHandler(t *testing.T) {
 
 	// Invalid file id
 	for _, param := range testInvalidDbIDs {
-		response, responseBody = doRequest(param)
-
-		if response.StatusCode != http.StatusBadRequest {
-			t.Fatalf("Should've returned with %d with %s, instead got: %d", http.StatusBadRequest, param, response.StatusCode)
-		}
+		doRequest(param, http.StatusBadRequest)
 	}
 
 	// File not found
-	response, responseBody = doRequest("123123123")
-
-	if response.StatusCode != http.StatusNotFound {
-		t.Fatalf("Should've returned %d, instead got: %d", http.StatusNotFound, response.StatusCode)
-	}
+	doRequest("123123123", http.StatusNotFound)
 }
