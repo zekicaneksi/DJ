@@ -152,6 +152,14 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Checking if file exists
 	missing, err := CheckIDsInDB("file", []int64{file_id})
+	if err != nil {
+		log.Printf("error when checking file id: %d", file_id)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when querying database",
+		})
+		return
+	}
+
 	if len(missing) != 0 {
 		writeResJSON(w, http.StatusNotFound, map[string]any{
 			"error": "file does not exist",
@@ -270,6 +278,14 @@ func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Check if tag exists
 	missing, err := CheckIDsInDB("tag", []int64{*req.TagID})
+	if err != nil {
+		log.Printf("error when checking tag id: %v", *req.TagID)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when querying database",
+		})
+		return
+	}
+
 	if len(missing) != 0 {
 		writeResJSON(w, http.StatusNotFound, map[string]any{
 			"error": "tag not found",
@@ -321,6 +337,14 @@ func DeleteTagHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Check if tag exists
 	missing, err := CheckIDsInDB("tag", []int64{*req.TagID})
+	if err != nil {
+		log.Printf("error when checking tag id: %v", *req.TagID)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when querying database",
+		})
+		return
+	}
+
 	if len(missing) != 0 {
 		writeResJSON(w, http.StatusNotFound, map[string]any{
 			"error": "tag not found",
@@ -374,6 +398,14 @@ func UpdateTagHandler(w http.ResponseWriter, r *http.Request) {
 
 	// File not found
 	missing, err := CheckIDsInDB("file", []int64{*req.FileID})
+	if err != nil {
+		log.Printf("error when checking file id: %v", *req.FileID)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when querying database",
+		})
+		return
+	}
+
 	if len(missing) != 0 {
 		writeResJSON(w, http.StatusNotFound, map[string]any{
 			"error": "file not found",
@@ -383,6 +415,14 @@ func UpdateTagHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Tag not found
 	missing, err = CheckIDsInDB("tag", *req.TagIDs)
+	if err != nil {
+		log.Printf("error when checking tag id: %v", *req.TagIDs)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when querying database",
+		})
+		return
+	}
+
 	if len(missing) != 0 {
 		writeResJSON(w, http.StatusNotFound, map[string]any{
 			"error": fmt.Sprintf("tag not found: %v", missing),
