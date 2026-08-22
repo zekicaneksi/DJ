@@ -19,6 +19,7 @@ func SetupServer() http.Handler {
 	mux.HandleFunc("GET /tags/{file_id}", TagsByFileIDHandler)
 	mux.HandleFunc("POST /create-tag", CreateTagHandler)
 	mux.HandleFunc("POST /rename-tag", RenameTagHandler)
+	mux.HandleFunc("POST /delete-tag", DeleteTagHandler)
 	mux.HandleFunc("GET /media/{file_id}", MediaHandler)
 
 	// Middlewares
@@ -295,6 +296,59 @@ func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
 
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "Failed to update database",
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Deletes a tag
+func DeleteTagHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TagID string `json:"tagID"`
+	}
+
+	// Invalid JSON
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid JSON",
+		})
+		return
+	}
+
+	// TagID is missing or empty
+	if req.TagID == "" {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "tagID is required",
+		})
+		return
+	}
+
+	// Validate TagID
+	tagID, err := ValidateDbId(req.TagID)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "tagID is invalid",
+		})
+		return
+	}
+
+	// Check if tag exists
+	missing, err := CheckIDsInDB("tag", []int64{tagID})
+	if len(missing) != 0 {
+		writeResJSON(w, http.StatusNotFound, map[string]any{
+			"error": "tag not found",
+		})
+		return
+	}
+
+	// Delete the tag
+	if err := DeleteTag(tagID); err != nil {
+		log.Printf("error when deleting tag %d: %v", tagID, err)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "internal error when deleting tag",
 		})
 		return
 	}

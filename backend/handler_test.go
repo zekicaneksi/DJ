@@ -353,6 +353,55 @@ func TestRenameTagHandler(t *testing.T) {
 	}
 }
 
+func TestDeleteTagHandler(t *testing.T) {
+	// Setup
+	setUpTest(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	doRequest := func(body string) (*http.Response, string) {
+		return makeRequest(
+			t,
+			http.MethodPost,
+			"/delete-tag",
+			body,
+			DeleteTagHandler,
+		)
+	}
+
+	// Valid
+	response, responseBody := doRequest(`{"tagID": "2"}`)
+
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNoContent, response.StatusCode, responseBody)
+	}
+
+	// Non-existent Tag ID
+	response, responseBody = doRequest(`{"tagID": "123123"}`)
+
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("Should have returned %d. Returned %d instead. Response: %v", http.StatusNotFound, response.StatusCode, responseBody)
+	}
+
+	// Invalid Requests
+	invalidRequests := []string{
+		`{"hello": "2"}`,   // Missing tagID
+		`{"tagID": "abc"}`, // Invalid tagId
+		`{"tagID": ""}`,    // Empty
+	}
+
+	for _, body := range invalidRequests {
+		response, responseBody = doRequest(body)
+
+		if response.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Should have returned %d. Returned %d instead. Data: %s, Response: %v", http.StatusBadRequest, response.StatusCode, body, responseBody)
+		}
+	}
+}
+
 func TestMediaHandler(t *testing.T) {
 	// Setup
 	setUpTest(t)
