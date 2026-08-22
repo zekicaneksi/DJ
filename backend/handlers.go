@@ -153,7 +153,7 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 	// Checking if file exists
 	missing, err := CheckIDsInDB("file", []int64{file_id})
 	if err != nil {
-		log.Printf("error when checking file id: %d", file_id)
+		log.Printf("error when checking file id %d: %v", file_id, err)
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "error when querying database",
 		})
@@ -279,7 +279,7 @@ func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
 	// Check if tag exists
 	missing, err := CheckIDsInDB("tag", []int64{*req.TagID})
 	if err != nil {
-		log.Printf("error when checking tag id: %v", *req.TagID)
+		log.Printf("error when checking tag id %v: %v", *req.TagID, err)
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "error when querying database",
 		})
@@ -338,7 +338,7 @@ func DeleteTagHandler(w http.ResponseWriter, r *http.Request) {
 	// Check if tag exists
 	missing, err := CheckIDsInDB("tag", []int64{*req.TagID})
 	if err != nil {
-		log.Printf("error when checking tag id: %v", *req.TagID)
+		log.Printf("error when checking tag id %v: %v", *req.TagID, err)
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "error when querying database",
 		})
@@ -354,7 +354,7 @@ func DeleteTagHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Delete the tag
 	if err := DeleteTag(*req.TagID); err != nil {
-		log.Printf("error when deleting tag %d: %v", req.TagID, err)
+		log.Printf("error when deleting tag %d: %v", *req.TagID, err)
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "internal error when deleting tag",
 		})
@@ -399,7 +399,7 @@ func UpdateTagHandler(w http.ResponseWriter, r *http.Request) {
 	// File not found
 	missing, err := CheckIDsInDB("file", []int64{*req.FileID})
 	if err != nil {
-		log.Printf("error when checking file id: %v", *req.FileID)
+		log.Printf("error when checking file id %d: %v", *req.FileID, err)
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "error when querying database",
 		})
@@ -416,7 +416,7 @@ func UpdateTagHandler(w http.ResponseWriter, r *http.Request) {
 	// Tag not found
 	missing, err = CheckIDsInDB("tag", *req.TagIDs)
 	if err != nil {
-		log.Printf("error when checking tag id: %v", *req.TagIDs)
+		log.Printf("error when checking tag id %v: %v", *req.TagIDs, err)
 		writeResJSON(w, http.StatusInternalServerError, map[string]any{
 			"error": "error when querying database",
 		})
@@ -470,6 +470,7 @@ func MediaHandler(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		} else {
+			log.Printf("error when querying database to stream file with id %d: %v", file_id, err)
 			writeResJSON(w, http.StatusInternalServerError, map[string]any{
 				"error": "Failed to query database",
 			})

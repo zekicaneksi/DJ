@@ -56,6 +56,8 @@ func ValidateTagGroups(tagGroups []TagGroup) error {
 
 // Checks if given ID's are present in given table
 // Returns missing IDs
+// Providing an invalid tableName will cause a CRASH!
+// (thank the language for not being able to check the table names easily, all solutions are bloat)
 func CheckIDsInDB(tableName string, IDs []int64) ([]int64, error) {
 	// Validating table name
 	validTableNames := []string{

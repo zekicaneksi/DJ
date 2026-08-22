@@ -33,7 +33,7 @@ func main() {
 	// Listen
 	log.Printf("Server running at %s", config.Port)
 	if err := http.ListenAndServe(":"+config.Port, handler); err != nil {
-		log.Fatalf("error when listening: %v", err)
+		log.Fatalf("error when listening %s: %v", config.Port, err)
 	}
 
 }
