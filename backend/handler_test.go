@@ -386,6 +386,67 @@ func TestUpdateTagHandler(t *testing.T) {
 	doRequest(`{"fileID": 2, "tagIDs": [1,2,123,456]}`, http.StatusNotFound)
 }
 
+func TestFilesByTagHandler(t *testing.T) {
+	// Setup
+	setUpTest(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	doRequest := func(body string, expectedStatusCode int) (*http.Response, string) {
+		return makeRequest(
+			t,
+			http.MethodPost,
+			"/search-files-by-tag",
+			body,
+			FilesByTagHandler,
+			expectedStatusCode,
+		)
+	}
+
+	// Helper function that unmarshals the body and checks the amount of files in the response
+	unmarshalResponse := func(body string, expectedAmount int) {
+		var responseVals struct {
+			Files []File `json:"files"`
+		}
+
+		err := json.Unmarshal([]byte(body), &responseVals)
+		if err != nil {
+			t.Fatalf("cannot unmarshal %s: %v", string(body), err)
+		}
+
+		if len(responseVals.Files) != expectedAmount {
+			t.Fatalf("Should have returned %d elements, instead got: %v", expectedAmount, responseVals.Files)
+		}
+	}
+
+	// Valid
+	_, responseBody := doRequest(`{"tagIDs": [2]}`, http.StatusOK)
+	unmarshalResponse(responseBody, 2)
+
+	// Valid
+	_, responseBody = doRequest(`{"tagIDs": [1,2]}`, http.StatusOK)
+	unmarshalResponse(responseBody, 1)
+
+	// Valid
+	_, responseBody = doRequest(`{"tagIDs": [4]}`, http.StatusOK)
+	unmarshalResponse(responseBody, 0)
+
+	// Duplicate tag ids
+	doRequest(`{"tagIDs": [1,2,2]}`, http.StatusBadRequest)
+
+	// tagIDs Missing
+	doRequest(`{"hello": [1]}`, http.StatusBadRequest)
+
+	// Non-existent tag
+	doRequest(`{"tagIDs": [8]}`, http.StatusNotFound)
+
+	// Invalid values
+	doRequest(`{"tagIDs": ["hello"]}`, http.StatusBadRequest)
+}
+
 func TestMediaHandler(t *testing.T) {
 	// Setup
 	setUpTest(t)

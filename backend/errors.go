@@ -11,6 +11,9 @@ var (
 	ErrTagNameTooLong   = errors.New("tag name is too long")
 	ErrTagAlreadyExists = errors.New("tag name already exists")
 
+	// ID Errors
+	ErrDuplicateID = errors.New("contains duplicate ids")
+
 	// Database Errors
 	ErrOpeningDatabase    = errors.New("could not create/open the database file")
 	ErrDatabaseConnection = errors.New("could not connect to the database")

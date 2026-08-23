@@ -331,7 +331,7 @@ Get the list of files from the backend by tag ids.
 
 ```json
 {
-  "error": "Invalid tag ids"
+  "error": "Invalid tag ids /// duplicate tag ids"
 }
 ```
 

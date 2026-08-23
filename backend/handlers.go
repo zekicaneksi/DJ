@@ -23,6 +23,7 @@ func SetupServer() http.Handler {
 	mux.HandleFunc("POST /rename-tag", RenameTagHandler)
 	mux.HandleFunc("POST /delete-tag", DeleteTagHandler)
 	mux.HandleFunc("POST /update-tag", UpdateTagHandler)
+	mux.HandleFunc("POST /search-files-by-tag", FilesByTagHandler)
 	mux.HandleFunc("GET /media/{file_id}", MediaHandler)
 
 	// Middlewares
@@ -440,6 +441,67 @@ func UpdateTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Returns files that have the given tags
+func FilesByTagHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TagIDs *[]int64 `json:"tagIDs"`
+	}
+
+	// Invalid Request Body
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	// TagIDs missing
+	if req.TagIDs == nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "tagIDs is required",
+		})
+		return
+	}
+
+	// Tag not found
+	missing, err := CheckIDsInDB("tag", *req.TagIDs)
+	if err != nil {
+		log.Printf("error when checking tag id %v: %v", *req.TagIDs, err)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when querying database",
+		})
+		return
+	}
+
+	if len(missing) != 0 {
+		writeResJSON(w, http.StatusNotFound, map[string]any{
+			"error": fmt.Sprintf("tag not found: %v", missing),
+		})
+		return
+	}
+
+	// Get files
+	files, err := ListFilesByTagIDs(*req.TagIDs)
+	if err != nil {
+		if errors.Is(err, ErrDuplicateID) {
+			writeResJSON(w, http.StatusBadRequest, map[string]any{
+				"error": ErrDuplicateID.Error(),
+			})
+			return
+		}
+		log.Printf("error when listing files with tags %v: %v", *req.TagIDs, err)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when querying database",
+		})
+		return
+	}
+
+	writeResJSON(w, http.StatusOK, map[string]any{
+		"files": files,
+	})
 }
 
 // Streaming a media file over http

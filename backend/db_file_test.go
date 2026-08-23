@@ -133,6 +133,4 @@ func TestListFilesByTagIDs(t *testing.T) {
 	listFilesByTagIDs([]int64{500}, false, 0)
 
 	listFilesByTagIDs([]int64{1, 2, 2, 3}, true, 0) // Duplicate id
-	listFilesByTagIDs([]int64{1, -2, 3}, true, 0)   // id < 0
-	listFilesByTagIDs([]int64{1, 0, 3}, true, 0)    // id == 0
 }
