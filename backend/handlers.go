@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 )
@@ -25,6 +26,7 @@ func SetupServer() http.Handler {
 	mux.HandleFunc("POST /update-tag", UpdateTagHandler)
 	mux.HandleFunc("POST /search-files-by-tag", FilesByTagHandler)
 	mux.HandleFunc("GET /media/{file_id}", MediaHandler)
+	mux.HandleFunc("POST /create-playlist", CreatePlaylistHandler)
 
 	// Middlewares
 	// Applied from innermost to outermost.
@@ -543,4 +545,95 @@ func MediaHandler(w http.ResponseWriter, r *http.Request) {
 	// Serve the file
 	path := filepath.Join(dbPath, file.Name)
 	http.ServeFile(w, r, path)
+}
+
+// Creates a playlist
+func CreatePlaylistHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TagGroups *[]TagGroup `json:"tagGroups"`
+	}
+
+	// Invalid Request Body
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	// TagGroups missing
+	if req.TagGroups == nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "tagGroups is required",
+		})
+		return
+	}
+
+	// Checking if all tag IDs exist
+	var idsToCheck []int64
+	for _, tagGroup := range *req.TagGroups {
+		idsToCheck = append(idsToCheck, tagGroup.TagIDs...)
+	}
+
+	missing, err := CheckIDsInDB("tag", idsToCheck)
+	if err != nil {
+		log.Printf("error when checking tag id %v: %v", idsToCheck, err)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when querying database",
+		})
+		return
+	}
+
+	if len(missing) != 0 {
+		writeResJSON(w, http.StatusNotFound, map[string]any{
+			"error": fmt.Sprintf("tag not found: %v", missing),
+		})
+		return
+	}
+
+	// Create the playlist
+	playlistFilePath, err := CreatePlaylist(*req.TagGroups)
+	if err != nil {
+		// Validation Errors
+		writeErr := func(err error) {
+			writeResJSON(w, http.StatusBadRequest, map[string]any{
+				"error": err.Error(),
+			})
+		}
+
+		knownErrors := []error{
+			ErrTagGroupEmptyArr,
+			ErrTagGroupEmpty,
+			ErrTagGroupAmount,
+			ErrTagGroupDuplicateID,
+		}
+
+		for _, knownErr := range knownErrors {
+			if errors.Is(err, knownErr) {
+				writeErr(knownErr)
+				return
+			}
+		}
+
+		// File operation errors
+		var pathErr *os.PathError
+		if errors.As(err, &pathErr) {
+			log.Printf("error when creating a playlist for %s, with %v: %v", dbPath, *req.TagGroups, pathErr)
+			writeResJSON(w, http.StatusForbidden, map[string]any{
+				"error": "Cannot create the file",
+			})
+
+		}
+
+		log.Printf("error when creating a playlist for %s, with %v: %v", dbPath, *req.TagGroups, err)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "Unknown Error",
+		})
+		return
+	}
+
+	writeResJSON(w, http.StatusCreated, map[string]any{
+		"name": playlistFilePath,
+	})
 }

@@ -18,24 +18,24 @@ func TestCreatePlaylist(t *testing.T) {
 	// Test
 	tagGroups := []TagGroup{
 		{
-			TagsIDs: []int64{1, 2},
-			Amount:  3,
+			TagIDs: []int64{1, 2},
+			Amount: 3,
 		},
 		{
-			TagsIDs: []int64{3},
-			Amount:  1,
+			TagIDs: []int64{3},
+			Amount: 1,
 		},
 		{
-			TagsIDs: []int64{},
-			Amount:  1,
+			TagIDs: []int64{},
+			Amount: 1,
 		},
 		{
-			TagsIDs: []int64{3},
-			Amount:  -2,
+			TagIDs: []int64{3},
+			Amount: -2,
 		},
 		{
-			TagsIDs: []int64{1, 2, 2},
-			Amount:  1,
+			TagIDs: []int64{1, 2, 2},
+			Amount: 1,
 		},
 	}
 

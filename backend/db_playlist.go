@@ -29,11 +29,11 @@ func CreatePlaylist(tagGroups []TagGroup) (string, error) {
 	for _, tagGroup := range tagGroups {
 
 		// For the (?, ?, ?, ...)
-		tagPlaceholders := make([]string, len(tagGroup.TagsIDs))
+		tagPlaceholders := make([]string, len(tagGroup.TagIDs))
 		// Arguments to provide to the query in the end
-		args := make([]any, 0, len(tagGroup.TagsIDs)+len(selectedIDs)+1)
+		args := make([]any, 0, len(tagGroup.TagIDs)+len(selectedIDs)+1)
 
-		for i, tagID := range tagGroup.TagsIDs {
+		for i, tagID := range tagGroup.TagIDs {
 			tagPlaceholders[i] = "?"
 			args = append(args, tagID)
 		}
@@ -66,7 +66,7 @@ func CreatePlaylist(tagGroups []TagGroup) (string, error) {
 			LIMIT ?
 		`
 
-		args = append(args, len(tagGroup.TagsIDs), tagGroup.Amount)
+		args = append(args, len(tagGroup.TagIDs), tagGroup.Amount)
 
 		rows, err := tx.Query(query, args...)
 		if err != nil {
@@ -112,7 +112,7 @@ func CreatePlaylist(tagGroups []TagGroup) (string, error) {
 
 	playlistPath, err := CreateM3U8(fileNames)
 	if err != nil {
-		return "", fmt.Errorf("error when committing playlist transaction: %w", err)
+		return "", fmt.Errorf("error when creating the playlist file: %w", err)
 	}
 
 	return playlistPath, nil

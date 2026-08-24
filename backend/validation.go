@@ -31,7 +31,7 @@ func ValidateTagGroups(tagGroups []TagGroup) error {
 	}
 
 	for _, tagGroup := range tagGroups {
-		if len(tagGroup.TagsIDs) == 0 {
+		if len(tagGroup.TagIDs) == 0 {
 			return ErrTagGroupEmpty
 		}
 
@@ -40,9 +40,9 @@ func ValidateTagGroups(tagGroups []TagGroup) error {
 		}
 
 		// Looking for duplicate ids, and returning error if found
-		tagSet := make(map[int64]struct{}, len(tagGroup.TagsIDs))
+		tagSet := make(map[int64]struct{}, len(tagGroup.TagIDs))
 
-		for _, tagID := range tagGroup.TagsIDs {
+		for _, tagID := range tagGroup.TagIDs {
 			if _, exists := tagSet[tagID]; exists {
 				return ErrTagGroupDuplicateID
 			}

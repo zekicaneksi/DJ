@@ -489,3 +489,63 @@ func TestMediaHandler(t *testing.T) {
 	// File not found
 	doRequest("123123123", http.StatusNotFound)
 }
+
+func TestCreatePlaylistHandler(t *testing.T) {
+	// Setup
+	setUpTest(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	doRequest := func(body string, expectedStatusCode int) (*http.Response, string) {
+		return makeRequest(
+			t,
+			http.MethodPost,
+			"/create-playlist",
+			body,
+			CreatePlaylistHandler,
+			expectedStatusCode,
+		)
+	}
+
+	// Valid
+	doRequest(`{"tagGroups": [{"TagIDs": [1],"Amount": 2}]}`, http.StatusCreated)
+
+	// Valid
+	doRequest(`{"tagGroups": [
+	{
+		"TagIDs": [1],
+		"Amount": 2
+	},
+	{
+		"TagIDs": [2],
+		"Amount": 1
+	}
+	]}`, http.StatusCreated)
+
+	// Valid
+	doRequest(`{"tagGroups": [{"TagIDs": [1, 2],"Amount": 10}]}`, http.StatusCreated)
+
+	// TagGroups missing
+	doRequest(`{"hello": [{"TagIDs": [1, 2],"Amount": 10}]}`, http.StatusBadRequest)
+
+	// Empty Tag Group
+	doRequest(`{"tagGroups": []}`, http.StatusBadRequest)
+
+	// Invalid TagGroup
+	doRequest(`{"tagGroups": [{"hello": [1, 2],"Amount": 3}]}`, http.StatusBadRequest)
+
+	// Invalid Amount
+	doRequest(`{"tagGroups": [{"TagIDs": [1, 2],"Amount": 0}]}`, http.StatusBadRequest)
+
+	// Invalid TagGroup arr
+	doRequest(`{"tagGroups": [{"TagIDs": 3,"Amount": 10}]}`, http.StatusBadRequest)
+
+	// Non-Existent Tag ID
+	doRequest(`{"tagGroups": [{"TagIDs": [1,5],"Amount": 1}]}`, http.StatusNotFound)
+
+	// Duplicate Tag ID
+	doRequest(`{"tagGroups": [{"TagIDs": [1, 1, 2],"Amount": 1}]}`, http.StatusBadRequest)
+}

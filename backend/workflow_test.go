@@ -153,16 +153,16 @@ func TestWorkflow(t *testing.T) {
 	// Create a playlist
 	_, err = CreatePlaylist([]TagGroup{
 		{
-			TagsIDs: []int64{1},
-			Amount:  2,
+			TagIDs: []int64{1},
+			Amount: 2,
 		},
 		{
-			TagsIDs: []int64{2, 3},
-			Amount:  2,
+			TagIDs: []int64{2, 3},
+			Amount: 2,
 		},
 		{
-			TagsIDs: []int64{4},
-			Amount:  1,
+			TagIDs: []int64{4},
+			Amount: 1,
 		},
 	})
 	if err != nil {

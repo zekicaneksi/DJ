@@ -11,6 +11,6 @@ type File struct {
 }
 
 type TagGroup struct {
-	TagsIDs []int64
-	Amount  int
+	TagIDs []int64
+	Amount int
 }

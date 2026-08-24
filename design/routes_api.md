@@ -401,7 +401,7 @@ Creates a playlist file.
 
 ```text
 {
-    "tagGroups": [][]TagGroup { TagIDs: []int64, Amount: int }
+    "tagGroups": []TagGroup { TagIDs: []int64, Amount: int }
 }
 ```
 
