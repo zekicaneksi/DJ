@@ -8,7 +8,6 @@
 
 ### List
 
-- If a test function's name doesn't start with "Test", that function will not work when testing. See if every test function starts with "Test".
 - Tests might not be checking every scenario. Mainly invalid JSON's.
 - Seems like there are repetitive code in `handlers.go`. Can something be done about that?
 - A workflow test using only the API routes.
