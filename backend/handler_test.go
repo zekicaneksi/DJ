@@ -252,6 +252,9 @@ func TestCreateTagHandler(t *testing.T) {
 
 	// Missing name field
 	doRequest(`{"hello": "folk"}`, http.StatusBadRequest)
+
+	// Invalid JSON
+	doRequest(`{abc:123`, http.StatusBadRequest)
 }
 
 func TestRenameTagHandler(t *testing.T) {
@@ -299,6 +302,9 @@ func TestRenameTagHandler(t *testing.T) {
 
 	// Missing newName
 	doRequest(`{"tagID": 2, "hello": "folk"}`, http.StatusBadRequest)
+
+	// Invalid JSON
+	doRequest(`{hello123:abc`, http.StatusBadRequest)
 }
 
 func TestDeleteTagHandler(t *testing.T) {
@@ -332,6 +338,7 @@ func TestDeleteTagHandler(t *testing.T) {
 		`{"hello": 2}`,     // Missing tagID
 		`{"tagID": "abc"}`, // Invalid tagId
 		`{"tagID": ""}`,    // Empty string
+		`{"hello:123"`,     // Invalid JSON
 	}
 
 	for _, body := range invalidRequests {
@@ -384,6 +391,9 @@ func TestUpdateTagHandler(t *testing.T) {
 
 	// Non-existent tag ID
 	doRequest(`{"fileID": 2, "tagIDs": [1,2,123,456]}`, http.StatusNotFound)
+
+	// Invalid JSON
+	doRequest(`{"fileID": 2`, http.StatusBadRequest)
 }
 
 func TestFilesByTagHandler(t *testing.T) {
@@ -445,6 +455,9 @@ func TestFilesByTagHandler(t *testing.T) {
 
 	// Invalid values
 	doRequest(`{"tagIDs": ["hello"]}`, http.StatusBadRequest)
+
+	// Invalid JSON
+	doRequest(`"tagIDs": ["hello"]`, http.StatusBadRequest)
 }
 
 func TestMediaHandler(t *testing.T) {
@@ -548,4 +561,7 @@ func TestCreatePlaylistHandler(t *testing.T) {
 
 	// Duplicate Tag ID
 	doRequest(`{"tagGroups": [{"TagIDs": [1, 1, 2],"Amount": 1}]}`, http.StatusBadRequest)
+
+	// Invalid JSON
+	doRequest(`{tagGroups: [{TagIDs: [1, 1, 2],Amount: 1}]}`, http.StatusBadRequest)
 }
