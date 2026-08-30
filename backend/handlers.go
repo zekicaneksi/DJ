@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
+	"strings"
 )
 
 // Setup Server
@@ -68,6 +70,96 @@ func writeResJSON(w http.ResponseWriter, status int, data map[string]any) {
 	}
 }
 
+// Decodes JSON into a given generic struct
+func decodeJSON[T any](w http.ResponseWriter, r *http.Request, dst *T) bool {
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid request body",
+		})
+		return false
+	}
+
+	return true
+}
+
+// Wrapper around CheckIDsInDB to reduce repetitive code
+func IDsExist(
+	w http.ResponseWriter,
+	table string,
+	typeOfID string, // Type of missing id to send to user. Do not use "table" parameter to prevent table name leakage to user.
+	ids []int64,
+) bool {
+	missing, err := CheckIDsInDB(table, ids)
+	if err != nil {
+		log.Printf("error when checking %s IDs %v: %v", table, ids, err)
+
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "error when querying database",
+		})
+		return false
+	}
+
+	if len(missing) != 0 {
+		writeResJSON(w, http.StatusNotFound, map[string]any{
+			"error": fmt.Sprintf("%s not found: %v", typeOfID, missing),
+		})
+		return false
+	}
+
+	return true
+}
+
+// Takes the http request's struct variable, and checks if every field is provided or not
+func validateRequiredFields(w http.ResponseWriter, v any) bool {
+	rv := reflect.ValueOf(v)
+	rt := rv.Type()
+
+	for i := 0; i < rv.NumField(); i++ {
+		field := rv.Field(i)
+		structField := rt.Field(i)
+
+		// Remove options such as ",omitempty".
+		jsonName := structField.Tag.Get("json")
+		if comma := strings.IndexByte(jsonName, ','); comma >= 0 {
+			jsonName = jsonName[:comma]
+		}
+
+		// nil pointer means the field wasn't provided.
+		if field.Kind() == reflect.Pointer {
+			if field.IsNil() {
+				writeResJSON(w, http.StatusBadRequest, map[string]any{
+					"error": fmt.Sprintf("%s is required", jsonName),
+				})
+				return false
+			}
+
+			field = field.Elem()
+		}
+
+		// Empty strings are considered unprovided.
+		if field.Kind() == reflect.String && field.Len() == 0 {
+			writeResJSON(w, http.StatusBadRequest, map[string]any{
+				"error": fmt.Sprintf("%s is required", jsonName),
+			})
+			return false
+		}
+	}
+
+	return true
+}
+
+// Checks if ID is int64 with PathValues
+func checkPathValueInt64(w http.ResponseWriter, pathValue string) (int64, error) {
+	file_id, err := strconv.ParseInt(pathValue, 10, 64)
+	if err != nil {
+		writeResJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "invalid int64 pathValue",
+		})
+		return 0, err
+	}
+	return file_id, nil
+}
+
 // Choose a directory and set up the database in the backend.
 func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -75,19 +167,12 @@ func ChooseDirHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Invalid Request Body
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid request body",
-		})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	// dirPath missing or empty
-	if req.DirPath == nil || len(*req.DirPath) == 0 {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "dirPath is required",
-		})
+	// Check fields
+	if !validateRequiredFields(w, req) {
 		return
 	}
 
@@ -145,28 +230,13 @@ func TagsByFileIDHandler(w http.ResponseWriter, r *http.Request) {
 	param_file_id := r.PathValue("file_id")
 
 	// Validating file id
-	file_id, err := strconv.ParseInt(param_file_id, 10, 64)
+	file_id, err := checkPathValueInt64(w, param_file_id)
 	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "file_id is not valid int64",
-		})
 		return
 	}
 
 	// Checking if file exists
-	missing, err := CheckIDsInDB("file", []int64{file_id})
-	if err != nil {
-		log.Printf("error when checking file id %d: %v", file_id, err)
-		writeResJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": "error when querying database",
-		})
-		return
-	}
-
-	if len(missing) != 0 {
-		writeResJSON(w, http.StatusNotFound, map[string]any{
-			"error": "file does not exist",
-		})
+	if !IDsExist(w, "file", "file", []int64{file_id}) {
 		return
 	}
 
@@ -193,19 +263,12 @@ func CreateTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Invalid Request Body
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid request body",
-		})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	// name missing or empty
-	if req.TagName == nil || len(*req.TagName) == 0 {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "name is required",
-		})
+	// Check fields
+	if !validateRequiredFields(w, req) {
 		return
 	}
 
@@ -247,27 +310,12 @@ func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Invalid Request Body
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid request body",
-		})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	// TagID is missing
-	if req.TagID == nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "tagID is required",
-		})
-		return
-	}
-
-	// newName is missing or empty
-	if req.NewName == nil || len(*req.NewName) == 0 {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "newName is required",
-		})
+	// Check fields
+	if !validateRequiredFields(w, req) {
 		return
 	}
 
@@ -280,19 +328,7 @@ func RenameTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if tag exists
-	missing, err := CheckIDsInDB("tag", []int64{*req.TagID})
-	if err != nil {
-		log.Printf("error when checking tag id %v: %v", *req.TagID, err)
-		writeResJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": "error when querying database",
-		})
-		return
-	}
-
-	if len(missing) != 0 {
-		writeResJSON(w, http.StatusNotFound, map[string]any{
-			"error": "tag not found",
-		})
+	if !IDsExist(w, "tag", "tag", []int64{*req.TagID}) {
 		return
 	}
 
@@ -322,36 +358,17 @@ func DeleteTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Invalid Request Body
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid request body",
-		})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	// TagID is missing
-	if req.TagID == nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "tagID is required",
-		})
+	// Check fields
+	if !validateRequiredFields(w, req) {
 		return
 	}
 
 	// Check if tag exists
-	missing, err := CheckIDsInDB("tag", []int64{*req.TagID})
-	if err != nil {
-		log.Printf("error when checking tag id %v: %v", *req.TagID, err)
-		writeResJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": "error when querying database",
-		})
-		return
-	}
-
-	if len(missing) != 0 {
-		writeResJSON(w, http.StatusNotFound, map[string]any{
-			"error": "tag not found",
-		})
+	if !IDsExist(w, "tag", "tag", []int64{*req.TagID}) {
 		return
 	}
 
@@ -375,61 +392,22 @@ func UpdateTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Invalid Request Body
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid request body",
-		})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	// TagIDs missing
-	if req.TagIDs == nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "tagIDs is required",
-		})
-		return
-	}
-
-	// fileID missing
-	if req.FileID == nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "fileID is required",
-		})
+	// Check fields
+	if !validateRequiredFields(w, req) {
 		return
 	}
 
 	// File not found
-	missing, err := CheckIDsInDB("file", []int64{*req.FileID})
-	if err != nil {
-		log.Printf("error when checking file id %d: %v", *req.FileID, err)
-		writeResJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": "error when querying database",
-		})
-		return
-	}
-
-	if len(missing) != 0 {
-		writeResJSON(w, http.StatusNotFound, map[string]any{
-			"error": "file not found",
-		})
+	if !IDsExist(w, "file", "file", []int64{*req.FileID}) {
 		return
 	}
 
 	// Tag not found
-	missing, err = CheckIDsInDB("tag", *req.TagIDs)
-	if err != nil {
-		log.Printf("error when checking tag id %v: %v", *req.TagIDs, err)
-		writeResJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": "error when querying database",
-		})
-		return
-	}
-
-	if len(missing) != 0 {
-		writeResJSON(w, http.StatusNotFound, map[string]any{
-			"error": fmt.Sprintf("tag not found: %v", missing),
-		})
+	if !IDsExist(w, "tag", "tag", *req.TagIDs) {
 		return
 	}
 
@@ -452,36 +430,17 @@ func FilesByTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Invalid Request Body
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid request body",
-		})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	// TagIDs missing
-	if req.TagIDs == nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "tagIDs is required",
-		})
+	// Check fields
+	if !validateRequiredFields(w, req) {
 		return
 	}
 
 	// Tag not found
-	missing, err := CheckIDsInDB("tag", *req.TagIDs)
-	if err != nil {
-		log.Printf("error when checking tag id %v: %v", *req.TagIDs, err)
-		writeResJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": "error when querying database",
-		})
-		return
-	}
-
-	if len(missing) != 0 {
-		writeResJSON(w, http.StatusNotFound, map[string]any{
-			"error": fmt.Sprintf("tag not found: %v", missing),
-		})
+	if !IDsExist(w, "tag", "tag", *req.TagIDs) {
 		return
 	}
 
@@ -511,11 +470,8 @@ func MediaHandler(w http.ResponseWriter, r *http.Request) {
 	param_file_id := r.PathValue("file_id")
 
 	// Validating file id
-	file_id, err := strconv.ParseInt(param_file_id, 10, 64)
+	file_id, err := checkPathValueInt64(w, param_file_id)
 	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "invalid file_id",
-		})
 		return
 	}
 
@@ -528,18 +484,17 @@ func MediaHandler(w http.ResponseWriter, r *http.Request) {
 	).Scan(&file.ID, &file.Name)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			writeResJSON(w, http.StatusNotFound, map[string]any{
 				"error": "File not found",
 			})
 			return
-		} else {
-			log.Printf("error when querying database to stream file with id %d: %v", file_id, err)
-			writeResJSON(w, http.StatusInternalServerError, map[string]any{
-				"error": "Failed to query database",
-			})
-			return
 		}
+		log.Printf("error when querying database to stream file with id %d: %v", file_id, err)
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "Failed to query database",
+		})
+		return
 	}
 
 	// Serve the file
@@ -554,19 +509,12 @@ func CreatePlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Invalid Request Body
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "Invalid request body",
-		})
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	// TagGroups missing
-	if req.TagGroups == nil {
-		writeResJSON(w, http.StatusBadRequest, map[string]any{
-			"error": "tagGroups is required",
-		})
+	// Check fields
+	if !validateRequiredFields(w, req) {
 		return
 	}
 
@@ -576,19 +524,7 @@ func CreatePlaylistHandler(w http.ResponseWriter, r *http.Request) {
 		idsToCheck = append(idsToCheck, tagGroup.TagIDs...)
 	}
 
-	missing, err := CheckIDsInDB("tag", idsToCheck)
-	if err != nil {
-		log.Printf("error when checking tag id %v: %v", idsToCheck, err)
-		writeResJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": "error when querying database",
-		})
-		return
-	}
-
-	if len(missing) != 0 {
-		writeResJSON(w, http.StatusNotFound, map[string]any{
-			"error": fmt.Sprintf("tag not found: %v", missing),
-		})
+	if !IDsExist(w, "tag", "tag", idsToCheck) {
 		return
 	}
 
@@ -623,7 +559,7 @@ func CreatePlaylistHandler(w http.ResponseWriter, r *http.Request) {
 			writeResJSON(w, http.StatusForbidden, map[string]any{
 				"error": "Cannot create the file",
 			})
-
+			return
 		}
 
 		log.Printf("error when creating a playlist for %s, with %v: %v", dbPath, *req.TagGroups, err)
