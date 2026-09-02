@@ -8,13 +8,40 @@ Code the backend first.
 
 ## List
 
-### Workflow Test with API routes
+### API Design - Success
 
-A workflow test using only the API routes.
+The routes that return 200 are written as "200 - Successs" instead they should be "200 - OK"
+
+### Repetitive Code in `TestWorkflow`
+
+The helper principle applied in `TestWorkflowHandlers` can be used here as well.
+
+### Listing Untagged Files
+
+I forgot the route for listing untagged files. There is a function already written for it `ListFilesUntagged` and it's being tested too. But there is no route for it in the design, and its handler is not written.
+- Add it to the design.
+- Write the handler and the test for it.
+
+Also in these tests, check for empty array;
+- `TestFilesByTagHandler`
+- `TestListFilesByTagIDs`
+
+Fix the commented line in `TestWorkflowHandlers`
+
+### Listing All Files
+
+I forgot the route for listing all files. There is a function already written for it `ListFilesAll` and it's being tested too. But there is no route for it in the design and its handler is not written.
+- Add it to the design.
+- Write the handler and the test for it.
+
+Fix the commented line in `TestWorkflowHandlers`
 
 ### Non-invasive DJ
 
 Instead of creating the SQLite file and the Playlist directory and their files in the music directory, a safer and less permission required way would be to create these in the directory where the executable is.
+
+Think about directory change as well. Let's say someone had already opened up a directory and did some tagging. If the user moves this directory then what?
+- An idea is, anytime UpdateFiles function detects new/missing files, it can maybe ask to update the files or the directory path to the user?
 
 I've thought about it, the only things I would need to change would be;
 - the `InitDatabase` function to create the directories.
