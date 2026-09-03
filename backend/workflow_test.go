@@ -25,32 +25,74 @@ func TestWorkflow(t *testing.T) {
 	}
 	defer CloseDB()
 
+	// Helper function for ListFilesAll
+	// Lists files and checks the amount
+	listFilesAllAndCheck := func(expectedAmount int) {
+		files, err := ListFilesAll()
+		if err != nil {
+			t.Fatalf("error when listing all files: %v", err)
+		}
+		if len(files) != expectedAmount {
+			t.Fatalf("Expected %d items in files. Instead got: %v", expectedAmount, files)
+		}
+	}
+
+	// Helper function for ListFilesUntagged
+	// Lists untagged files and checks the amount
+	listFilesUntaggedAndCheck := func(expectedAmount int) {
+		files, err := ListFilesUntagged()
+		if err != nil {
+			t.Fatalf("error when listing untagged files: %v", err)
+		}
+		if len(files) != expectedAmount {
+			t.Fatalf("Expected %d items in untagged files. Instead got: %v", expectedAmount, files)
+		}
+	}
+
+	// Helper function for ListTagsAll
+	// Lists all tags and checks the amount
+	listTagsAllAndCheck := func(expectedAmount int) {
+		tags, err := ListTagsAll()
+		if err != nil {
+			t.Fatalf("error when listing all tags: %v", err)
+		}
+		if len(tags) != expectedAmount {
+			t.Fatalf("Expected %d tags. Instead got: %v", expectedAmount, tags)
+		}
+	}
+
+	// Helper function for ListTagsByFileID
+	// Lists tags by file id and checks the amount
+	listTagsByFileIDAndCheck := func(fileID int64, expectedAmount int) {
+		tags, err := ListTagsByFileID(fileID)
+		if err != nil {
+			t.Fatalf("error when listing tags by file id %d: %v", fileID, err)
+		}
+		if len(tags) != expectedAmount {
+			t.Fatalf("Expected %d tags. Instead got: %v", expectedAmount, tags)
+		}
+	}
+
+	// Helper function for ListFilesByTagIDs
+	// Lists files by given tag IDs and checks the amount
+	listFilesByTagIDsAndCheck := func(tagIDs []int64, expectedAmount int) {
+		files, err := ListFilesByTagIDs(tagIDs)
+		if err != nil {
+			t.Fatalf("Error when listing files by tag ids %v: %v", tagIDs, err)
+		}
+		if len(files) != expectedAmount {
+			t.Fatalf("Expected %d files, instead got: %v", expectedAmount, files)
+		}
+	}
+
 	// List all files
-	files, err := ListFilesAll()
-	if err != nil {
-		t.Fatalf("error when listing all files: %v", err)
-	}
-	if len(files) != 4 {
-		t.Fatalf("Expected 4 items in files. Instead got: %v", files)
-	}
+	listFilesAllAndCheck(4)
 
 	// List untagged files
-	files, err = ListFilesUntagged()
-	if err != nil {
-		t.Fatalf("error when listing untagged files: %v", err)
-	}
-	if len(files) != 4 {
-		t.Fatalf("Expected 4 items in untagged files. Instead got: %v", files)
-	}
+	listFilesUntaggedAndCheck(4)
 
 	// List all tags
-	tags, err := ListTagsAll()
-	if err != nil {
-		t.Fatalf("error when listing all tags: %v", err)
-	}
-	if len(tags) != 0 {
-		t.Fatalf("Expected 0 tags. Instead got: %v", tags)
-	}
+	listTagsAllAndCheck(0)
 
 	// Create tags
 	tagsToCreate := []string{"old", "new", "good", "bad", "so loud"}
@@ -101,40 +143,16 @@ func TestWorkflow(t *testing.T) {
 	}
 
 	// List all files
-	files, err = ListFilesAll()
-	if err != nil {
-		t.Fatalf("error when listing all files: %v", err)
-	}
-	if len(files) != 6 {
-		t.Fatalf("Expected 6 items in files. Instead got: %v", files)
-	}
+	listFilesAllAndCheck(6)
 
 	// List untagged files
-	files, err = ListFilesUntagged()
-	if err != nil {
-		t.Fatalf("error when listing untagged files: %v", err)
-	}
-	if len(files) != 2 {
-		t.Fatalf("Expected 2 items in untagged files. Instead got: %v", files)
-	}
+	listFilesUntaggedAndCheck(2)
 
 	// List tags by file ID
-	tags, err = ListTagsByFileID(4)
-	if err != nil {
-		t.Fatalf("error when listing tags by file id 4: %v", err)
-	}
-	if len(tags) != 3 {
-		t.Fatalf("Expected 3 tags. Instead got: %v", tags)
-	}
+	listTagsByFileIDAndCheck(4, 3)
 
 	// List files by tag
-	files, err = ListFilesByTagIDs([]int64{2, 3})
-	if err != nil {
-		t.Fatalf("Error when listing files by tag ids 2,3: %v", err)
-	}
-	if len(files) != 2 {
-		t.Fatalf("Expected 2 files, instead got: %v", files)
-	}
+	listFilesByTagIDsAndCheck([]int64{2, 3}, 2)
 
 	// Remove a file and update database
 	deleteFile(t, "best slow.mP4")
@@ -144,16 +162,10 @@ func TestWorkflow(t *testing.T) {
 	}
 
 	// List all tags
-	tags, err = ListTagsAll()
-	if err != nil {
-		t.Fatalf("error when listing all tags: %v", err)
-	}
-	if len(tags) != 4 {
-		t.Fatalf("Expected 4 tags. Instead got: %v", tags)
-	}
+	listTagsAllAndCheck(4)
 
 	// Create a playlist
-	_, err = CreatePlaylist([]TagGroup{
+	_, err := CreatePlaylist([]TagGroup{
 		{
 			TagIDs: []int64{1},
 			Amount: 2,

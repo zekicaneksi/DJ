@@ -8,10 +8,6 @@ Code the backend first.
 
 ## List
 
-### Repetitive Code in `TestWorkflow`
-
-The helper principle applied in `TestWorkflowHandlers` can be used here as well.
-
 ### Listing Untagged Files
 
 I forgot the route for listing untagged files. There is a function already written for it `ListFilesUntagged` and it's being tested too. But there is no route for it in the design, and its handler is not written.
