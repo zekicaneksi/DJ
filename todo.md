@@ -8,10 +8,6 @@ Code the backend first.
 
 ## List
 
-### API Design - Success
-
-The routes that return 200 are written as "200 - Successs" instead they should be "200 - OK"
-
 ### Repetitive Code in `TestWorkflow`
 
 The helper principle applied in `TestWorkflowHandlers` can be used here as well.

@@ -83,7 +83,7 @@ Empty body
 
 Get the list of all tags.
 
-#### 200 - Success
+#### 200 - OK
 
 ```text
 {
@@ -103,7 +103,7 @@ Get the list of all tags.
 
 Get the list of tags of a file by id.
 
-#### 200 - Success
+#### 200 - OK
 
 ```text
 {
@@ -319,7 +319,7 @@ Get the list of files from the backend by tag ids.
 }
 ```
 
-#### 200 - Success
+#### 200 - OK
 
 ```text
 {
@@ -355,7 +355,7 @@ Get the list of files from the backend by tag ids.
 
 Streams a file by id.
 
-#### 200 - Success
+#### 200 - OK
 
 ```text
 The file
