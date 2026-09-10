@@ -147,23 +147,19 @@ func TestListTagsHandler(t *testing.T) {
 	defer CloseDB()
 
 	// Request
-	response, responseBody := makeRequest(t, http.MethodGet, "/tags", "", ListTagsHandler, http.StatusOK)
+	_, responseBody := makeRequest(t, http.MethodGet, "/tags", "", ListTagsHandler, http.StatusOK)
 
-	if response.StatusCode == http.StatusOK {
-		var responseVals struct {
-			Tags []Tag `json:"tags"`
-		}
+	var responseVals struct {
+		Tags []Tag `json:"tags"`
+	}
 
-		err := json.Unmarshal([]byte(responseBody), &responseVals)
-		if err != nil {
-			t.Fatalf("cannot unmarshal %s: %v", string(responseBody), err)
-		}
+	err := json.Unmarshal([]byte(responseBody), &responseVals)
+	if err != nil {
+		t.Fatalf("cannot unmarshal %s: %v", string(responseBody), err)
+	}
 
-		if len(responseVals.Tags) != 4 {
-			t.Fatalf("Should have returned 4 elements, instead got: %v", responseVals.Tags)
-		}
-	} else {
-		t.Fatalf("Should've returned %d, instead got: %d", http.StatusOK, response.StatusCode)
+	if len(responseVals.Tags) != 4 {
+		t.Fatalf("Should have returned 4 elements, instead got: %v", responseVals.Tags)
 	}
 }
 
@@ -394,6 +390,31 @@ func TestUpdateTagHandler(t *testing.T) {
 
 	// Invalid JSON
 	doRequest(`{"fileID": 2`, http.StatusBadRequest)
+}
+
+func TestAllFilesHandler(t *testing.T) {
+	// Setup
+	setUpTest(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	_, responseBody := makeRequest(t, http.MethodGet, "/all-files", "", AllFilesHandler, http.StatusOK)
+
+	var responseVals struct {
+		Files []File `json:"files"`
+	}
+
+	err := json.Unmarshal([]byte(responseBody), &responseVals)
+	if err != nil {
+		t.Fatalf("cannot unmarshal %s: %v", string(responseBody), err)
+	}
+
+	if len(responseVals.Files) != 4 {
+		t.Fatalf("Should have returned 4 elements, instead got: %v", responseVals.Files)
+	}
 }
 
 func TestFilesByTagHandler(t *testing.T) {

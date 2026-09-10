@@ -26,6 +26,7 @@ func SetupServer() http.Handler {
 	mux.HandleFunc("POST /rename-tag", RenameTagHandler)
 	mux.HandleFunc("POST /delete-tag", DeleteTagHandler)
 	mux.HandleFunc("POST /update-tag", UpdateTagHandler)
+	mux.HandleFunc("GET /all-files", AllFilesHandler)
 	mux.HandleFunc("POST /search-files-by-tag", FilesByTagHandler)
 	mux.HandleFunc("GET /media/{file_id}", MediaHandler)
 	mux.HandleFunc("POST /create-playlist", CreatePlaylistHandler)
@@ -421,6 +422,23 @@ func UpdateTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Returns all files
+func AllFilesHandler(w http.ResponseWriter, r *http.Request) {
+	files, err := ListFilesAll()
+	if err != nil {
+		log.Printf("failed to list all files %v", err)
+
+		writeResJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "Failed to query database",
+		})
+		return
+	}
+
+	writeResJSON(w, http.StatusOK, map[string]any{
+		"files": files,
+	})
 }
 
 // Returns files that have the given tags

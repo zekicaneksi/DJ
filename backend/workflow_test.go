@@ -195,6 +195,24 @@ func TestWorkflowHandlers(t *testing.T) {
 		createFile(t, n)
 	}
 
+	// Helper function for testing AllFilesHandler
+	// Makes the request and checks the amount of files in the response
+	listAllFilesAndCheck := func(expectedAmount int) {
+		_, responseBody := makeRequest(t, "GET", "/all-files", "", AllFilesHandler, http.StatusOK)
+		var responseVals struct {
+			Files []File `json:"files"`
+		}
+
+		err := json.Unmarshal([]byte(responseBody), &responseVals)
+		if err != nil {
+			t.Fatalf("cannot unmarshal %s: %v", string(responseBody), err)
+		}
+
+		if len(responseVals.Files) != expectedAmount {
+			t.Fatalf("Should have returned %d elements, instead got: %v", expectedAmount, responseVals.Files)
+		}
+	}
+
 	// Helper function for testing FilesByTagHandler
 	// Makes the request and checks the amount of files in the response
 	listFilesByTagIDAndCheck := func(tagIDs []int64, expectedAmount int) {
@@ -223,7 +241,7 @@ func TestWorkflowHandlers(t *testing.T) {
 	}
 
 	// Helper function for testing ListTagsHandler
-	// Makes the request and checks the amount of files in the response
+	// Makes the request and checks the amount of tags in the response
 	listAllTagsAndCheck := func(expectedAmount int) {
 		_, responseBody := makeRequest(t, "GET", "/tags", "", ListTagsHandler, http.StatusOK)
 		var responseVals struct {
@@ -241,7 +259,7 @@ func TestWorkflowHandlers(t *testing.T) {
 	}
 
 	// Helper function for testing TagsByFileIDHandler
-	// Makes the request and checks the amount of files in the response
+	// Makes the request and checks the amount of tags in the response
 	listTagsByFileIDAndCheck := func(fileID int64, expectedAmount int) {
 		_, responseBody := makePathValueRequest(t, "GET", "/tags/{file_id}", "file_id", strconv.FormatInt(fileID, 10), TagsByFileIDHandler, http.StatusOK)
 		var responseVals struct {
@@ -276,16 +294,8 @@ func TestWorkflowHandlers(t *testing.T) {
 	makeRequest(t, "POST", "/choose-dir", fmt.Sprintf(`{"dirPath": "%s"}`, testDirectoryPath), ChooseDirHandler, http.StatusNoContent)
 	defer CloseDB()
 
-	/*
-		// List all files
-		files, err = ListFilesAll()
-		if err != nil {
-			t.Fatalf("error when listing all files: %v", err)
-		}
-		if len(files) != 4 {
-			t.Fatalf("Expected 4 items in files. Instead got: %v", files)
-		}
-	*/
+	// List all files
+	listAllFilesAndCheck(4)
 
 	/*
 		// List untagged files
@@ -332,16 +342,8 @@ func TestWorkflowHandlers(t *testing.T) {
 	makeRequest(t, "POST", "/choose-dir", fmt.Sprintf(`{"dirPath": "%s"}`, testDirectoryPath), ChooseDirHandler, http.StatusNoContent)
 	defer CloseDB()
 
-	/*
-		// List all files
-		files, err = ListFilesAll()
-		if err != nil {
-			t.Fatalf("error when listing all files: %v", err)
-		}
-		if len(files) != 6 {
-			t.Fatalf("Expected 6 items in files. Instead got: %v", files)
-		}
-	*/
+	// List all files
+	listAllFilesAndCheck(6)
 
 	/*
 		// List untagged files
