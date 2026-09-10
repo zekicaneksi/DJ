@@ -39,11 +39,17 @@ func TestCreatePlaylist(t *testing.T) {
 		},
 	}
 
+	// Valid
 	if _, err := CreatePlaylist([]TagGroup{
 		tagGroups[0],
 		tagGroups[1],
 	}); err != nil {
 		t.Fatal(err)
+	}
+
+	// Empty TagGroup
+	if _, err := CreatePlaylist([]TagGroup{}); err == nil {
+		t.Fatalf("Expected error with empty TagGroup")
 	}
 
 	// Empty TagIDs
