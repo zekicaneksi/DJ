@@ -417,6 +417,31 @@ func TestAllFilesHandler(t *testing.T) {
 	}
 }
 
+func TestUntaggedFilesHandler(t *testing.T) {
+	// Setup
+	setUpTest(t)
+
+	// Set up DB
+	setUpAndFillDB(t)
+	defer CloseDB()
+
+	// Request
+	_, responseBody := makeRequest(t, http.MethodGet, "/untagged-files", "", UntaggedFilesHandler, http.StatusOK)
+
+	var responseVals struct {
+		Files []File `json:"files"`
+	}
+
+	err := json.Unmarshal([]byte(responseBody), &responseVals)
+	if err != nil {
+		t.Fatalf("cannot unmarshal %s: %v", string(responseBody), err)
+	}
+
+	if len(responseVals.Files) != 1 {
+		t.Fatalf("Should have returned 1 element, instead got: %v", responseVals.Files)
+	}
+}
+
 func TestFilesByTagHandler(t *testing.T) {
 	// Setup
 	setUpTest(t)
@@ -463,6 +488,10 @@ func TestFilesByTagHandler(t *testing.T) {
 
 	// Valid
 	_, responseBody = doRequest(`{"tagIDs": [4]}`, http.StatusOK)
+	unmarshalResponse(responseBody, 0)
+
+	// Valid
+	_, responseBody = doRequest(`{"tagIDs": []}`, http.StatusOK)
 	unmarshalResponse(responseBody, 0)
 
 	// Duplicate tag ids

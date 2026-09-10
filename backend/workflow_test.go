@@ -213,6 +213,24 @@ func TestWorkflowHandlers(t *testing.T) {
 		}
 	}
 
+	// Helper function for testing UntaggedFilesHandler
+	// Makes the request and checks the amount of files in the response
+	listUntaggedFilesAndCheck := func(expectedAmount int) {
+		_, responseBody := makeRequest(t, "GET", "/untagged-files", "", UntaggedFilesHandler, http.StatusOK)
+		var responseVals struct {
+			Files []File `json:"files"`
+		}
+
+		err := json.Unmarshal([]byte(responseBody), &responseVals)
+		if err != nil {
+			t.Fatalf("cannot unmarshal %s: %v", string(responseBody), err)
+		}
+
+		if len(responseVals.Files) != expectedAmount {
+			t.Fatalf("Should have returned %d elements, instead got: %v", expectedAmount, responseVals.Files)
+		}
+	}
+
 	// Helper function for testing FilesByTagHandler
 	// Makes the request and checks the amount of files in the response
 	listFilesByTagIDAndCheck := func(tagIDs []int64, expectedAmount int) {
@@ -297,16 +315,8 @@ func TestWorkflowHandlers(t *testing.T) {
 	// List all files
 	listAllFilesAndCheck(4)
 
-	/*
-		// List untagged files
-		files, err = ListFilesUntagged()
-		if err != nil {
-			t.Fatalf("error when listing untagged files: %v", err)
-		}
-		if len(files) != 4 {
-			t.Fatalf("Expected 4 items in untagged files. Instead got: %v", files)
-		}
-	*/
+	// List untagged files
+	listUntaggedFilesAndCheck(4)
 
 	// List all tags
 	listAllTagsAndCheck(0)
@@ -345,16 +355,8 @@ func TestWorkflowHandlers(t *testing.T) {
 	// List all files
 	listAllFilesAndCheck(6)
 
-	/*
-		// List untagged files
-		files, err = ListFilesUntagged()
-		if err != nil {
-			t.Fatalf("error when listing untagged files: %v", err)
-		}
-		if len(files) != 2 {
-			t.Fatalf("Expected 2 items in untagged files. Instead got: %v", files)
-		}
-	*/
+	// List untagged files
+	listUntaggedFilesAndCheck(2)
 
 	// List tags by file ID
 	listTagsByFileIDAndCheck(4, 3)

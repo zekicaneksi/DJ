@@ -137,6 +137,11 @@ func ListFilesUntagged() ([]File, error) {
 
 // Lists files by tag IDs
 func ListFilesByTagIDs(tagIDs []int64) ([]File, error) {
+	// Return empty array if tagIDs is empty
+	if len(tagIDs) == 0 {
+		return []File{}, nil
+	}
+
 	// Checking for duplicates in tagIDs
 	seen := make(map[int64]struct{}, len(tagIDs))
 

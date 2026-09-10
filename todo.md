@@ -8,17 +8,6 @@ Code the backend first.
 
 ## List
 
-### Listing Untagged Files
-
-I forgot the route for listing untagged files. There is a function already written for it `ListFilesUntagged` and it's being tested too. But its handler is not written.
-- Write the handler and the test for it.
-
-Also in these tests, check for empty array;
-- `TestFilesByTagHandler`
-- `TestListFilesByTagIDs`
-
-Fix the commented lines in `TestWorkflowHandlers`
-
 ### Non-invasive DJ
 
 Instead of creating the SQLite file and the Playlist directory and their files in the music directory, a safer and less permission required way would be to create these in the directory where the executable is.
