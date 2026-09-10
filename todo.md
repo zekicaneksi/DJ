@@ -11,7 +11,6 @@ Code the backend first.
 ### Listing Untagged Files
 
 I forgot the route for listing untagged files. There is a function already written for it `ListFilesUntagged` and it's being tested too. But there is no route for it in the design, and its handler is not written.
-- Add it to the design.
 - Write the handler and the test for it.
 
 Also in these tests, check for empty array;
@@ -23,7 +22,6 @@ Fix the commented line in `TestWorkflowHandlers`
 ### Listing All Files
 
 I forgot the route for listing all files. There is a function already written for it `ListFilesAll` and it's being tested too. But there is no route for it in the design and its handler is not written.
-- Add it to the design.
 - Write the handler and the test for it.
 
 Fix the commented line in `TestWorkflowHandlers`

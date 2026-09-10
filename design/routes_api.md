@@ -16,6 +16,8 @@
     - [POST /delete-tag](#post-delete-tag)
     - [POST /update-tag](#post-update-tag)
   - [Files](#files)
+    - [GET /all-files](#get-all-files)
+    - [GET /untagged-files](#get-untagged-files)
     - [POST /search-files-by-tag](#post-search-files-by-tag)
     - [GET /media/{file_id}](#get-mediafile_id)
   - [Playlists](#playlists)
@@ -308,6 +310,46 @@ Empty body
 ```
 
 ## Files
+
+### GET /all-files
+
+Get the list of all files.
+
+#### 200 - OK
+
+```text
+{
+    "files": []File { ID: int64, Name: string }
+}
+```
+
+#### 500 - Internal Server Error
+
+```json
+{
+  "error": "Failed to query database"
+}
+```
+
+### GET /untagged-files
+
+Get the list of files that don't have any tags.
+
+#### 200 - OK
+
+```text
+{
+    "files": []File { ID: int64, Name: string }
+}
+```
+
+#### 500 - Internal Server Error
+
+```json
+{
+  "error": "Failed to query database"
+}
+```
 
 ### POST /search-files-by-tag
 
