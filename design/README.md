@@ -1,7 +1,5 @@
 # Design
 
-<b>This is only the initial design and once the coding starts, the design here will not be updated.</b>
-
 ## Requirements
 
 - Tag the music files to categorize them.
@@ -13,7 +11,7 @@
 ## Technologies
 
 - Database -> SQLite
-- Frontend -> mainly React
+- Frontend -> React
 - Backend -> Go
 
 ## Database

@@ -1,6 +1,6 @@
 # UI
 
-The <b>UI.png</b> file is the design.
+The <b>UI.png</b> file is the wireframe UI design.
 
 ### Notes on the design
 
